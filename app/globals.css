@@ -14,6 +14,11 @@
     --accent-foreground: 0 0% 100%;
     --border: 0 0% 90%;
     --ring: 217 91% 60%;
+    /* Gamedev UI */
+    --game-panel: 0 0% 96%;
+    --game-panel-hover: 0 0% 92%;
+    --game-border: 0 0% 85%;
+    --game-shadow: 0 0% 0% / 0.06;
   }
   .dark {
     --background: 0 0% 7%;
@@ -26,6 +31,10 @@
     --accent-foreground: 0 0% 100%;
     --border: 0 0% 18%;
     --ring: 217 91% 60%;
+    --game-panel: 0 0% 12%;
+    --game-panel-hover: 0 0% 18%;
+    --game-border: 0 0% 22%;
+    --game-shadow: 0 0% 0% / 0.2;
   }
 }
 
@@ -35,4 +44,75 @@ html {
 
 body {
   @apply bg-background text-foreground antialiased;
+}
+
+/* ——— Gamedev UI ——— */
+.game-screen {
+  position: relative;
+}
+.game-screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    hsl(var(--foreground) / 0.02) 2px,
+    hsl(var(--foreground) / 0.02) 4px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+.game-screen > * {
+  position: relative;
+  z-index: 1;
+}
+
+.game-label {
+  color: hsl(var(--muted-foreground));
+  font-weight: 600;
+  letter-spacing: 0.2em;
+}
+
+.game-title {
+  font-family: var(--font-game), var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+}
+
+.game-panel {
+  border: 2px solid hsl(var(--game-border));
+  background: hsl(var(--game-panel));
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.03),
+    0 4px 24px hsl(var(--game-shadow));
+}
+.dark .game-panel {
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.04),
+    0 4px 24px hsl(var(--game-shadow));
+}
+
+.game-menu-item {
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.game-footer {
+  background: hsl(var(--muted) / 0.5);
+}
+
+.game-credits {
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.shadow-game {
+  box-shadow:
+    0 0 0 2px hsl(var(--game-border)),
+    0 8px 32px hsl(var(--foreground) / 0.08);
+}
+.dark .shadow-game {
+  box-shadow:
+    0 0 0 2px hsl(var(--game-border)),
+    0 8px 32px hsl(0 0% 0% / 0.4);
 }

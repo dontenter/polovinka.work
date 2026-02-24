@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
+import { Outfit, Orbitron } from "next/font/google";
 import Link from "next/link";
 import { SiteNav } from "@/components/site-nav";
 import "./globals.css";
@@ -9,10 +9,15 @@ const outfit = Outfit({
   variable: "--font-outfit",
 });
 
+const orbitron = Orbitron({
+  subsets: ["latin"],
+  variable: "--font-game",
+});
+
 export const metadata: Metadata = {
   title: "Pavel Polovinka — polovinka.work",
   description:
-    "Product & Business Development. 13+ years building products at scale. This is how I work.",
+    "Products / Operations / Startups. Gamedev. Jakarta — Singapore — Amsterdam.",
 };
 
 export default function RootLayout({
@@ -21,13 +26,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={outfit.variable}>
+    <html lang="en" className={`${outfit.variable} ${orbitron.variable}`}>
       <body className="min-h-screen font-sans">
-        <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container flex h-14 max-w-5xl mx-auto items-center justify-between px-4 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-50 w-full border-b-2 border-game-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="container flex h-14 max-w-2xl mx-auto items-center justify-between px-4 sm:px-6 lg:px-8">
             <Link
               href="/"
-              className="text-sm font-semibold text-foreground hover:opacity-80 transition-opacity"
+              className="text-sm font-bold tracking-wider text-foreground hover:text-accent transition-colors"
+              style={{ fontFamily: "var(--font-game), var(--font-outfit)" }}
             >
               polovinka.work
             </Link>

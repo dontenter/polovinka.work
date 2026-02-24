@@ -28,6 +28,11 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        game: {
+          panel: "hsl(var(--game-panel))",
+          "panel-hover": "hsl(var(--game-panel-hover))",
+          border: "hsl(var(--game-border))",
+        },
       },
     },
   },
