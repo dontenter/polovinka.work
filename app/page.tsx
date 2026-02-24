@@ -33,15 +33,15 @@ export default function HomePage() {
               href="https://playgama.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center h-10 px-4 text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Playgama"
             >
               <Image
-                src="/playgama-logo.svg"
+                src="/playgama-logo.png"
                 alt="Playgama"
-                width={140}
-                height={32}
-                className="h-7 w-auto object-contain dark:invert"
+                width={64}
+                height={64}
+                className="w-14 h-14 rounded-full object-cover ring-2 ring-game-border"
               />
             </a>
           </div>
