@@ -25,6 +25,26 @@ export default function HomePage() {
           <p className="mt-4 text-muted-foreground text-sm sm:text-base tracking-wide">
             Jakarta — Singapore — Amsterdam
           </p>
+          <div className="mt-8 flex flex-col items-center gap-2">
+            <span className="game-label text-xs tracking-[0.15em] uppercase">
+              Now at
+            </span>
+            <a
+              href="https://playgama.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center h-10 px-4 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Playgama"
+            >
+              <Image
+                src="/playgama-logo.svg"
+                alt="Playgama"
+                width={140}
+                height={32}
+                className="h-7 w-auto object-contain dark:invert"
+              />
+            </a>
+          </div>
           <nav className="mt-12 flex flex-col sm:flex-row gap-2 sm:gap-6">
             <Link
               href="#contact"
