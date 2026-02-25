@@ -63,6 +63,45 @@ async function getCroppedImageBlob(
   });
 }
 
+async function getCenterCroppedBlob(
+  imageUrl: string,
+  targetWidth: number,
+  targetHeight: number
+): Promise<Blob> {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new window.Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = imageUrl;
+  });
+  const srcW = img.naturalWidth;
+  const srcH = img.naturalHeight;
+  const targetAspect = targetWidth / targetHeight;
+  const srcAspect = srcW / srcH;
+  let cropW: number, cropH: number;
+  if (srcAspect > targetAspect) {
+    cropH = srcH;
+    cropW = srcH * targetAspect;
+  } else {
+    cropW = srcW;
+    cropH = srcW / targetAspect;
+  }
+  const x = (srcW - cropW) / 2;
+  const y = (srcH - cropH) / 2;
+  const canvas = document.createElement("canvas");
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2d not available");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, x, y, cropW, cropH, 0, 0, targetWidth, targetHeight);
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("toBlob failed"))), "image/png", 0.95);
+  });
+}
+
 type ImageSize =
   | "1:1"
   | "9:16"
@@ -122,7 +161,7 @@ const PLATFORMS = [
     id: "youtube",
     name: "YouTube",
     sizes: [
-      { width: 540, height: 756, image_size: "5:7" as const },
+      { width: 540, height: 756, image_size: "5:7" as const, deriveFrom: "9:16" as const },
       { width: 1280, height: 720, image_size: "16:9" as const, resizeOnly: true },
     ],
   },
@@ -132,7 +171,14 @@ type PlatformId = (typeof PLATFORMS)[number]["id"];
 
 type OutputEntry =
   | { kind: "generate"; image_size: ImageSize; platforms: { name: string; width: number; height: number }[] }
-  | { kind: "resize"; width: number; height: number; platforms: { name: string; width: number; height: number }[] };
+  | { kind: "resize"; width: number; height: number; platforms: { name: string; width: number; height: number }[] }
+  | {
+      kind: "deriveFrom";
+      sourceImageSize: ImageSize;
+      width: number;
+      height: number;
+      platforms: { name: string; width: number; height: number }[];
+    };
 
 function getOutputSizes(selectedPlatformIds: PlatformId[]): OutputEntry[] {
   const generateByRatio = new Map<
@@ -140,14 +186,31 @@ function getOutputSizes(selectedPlatformIds: PlatformId[]): OutputEntry[] {
     { image_size: ImageSize; platforms: { name: string; width: number; height: number }[] }
   >();
   const resizeByKey = new Map<string, { width: number; height: number; platforms: { name: string; width: number; height: number }[] }>();
+  const deriveList: OutputEntry[] = [];
   for (const id of selectedPlatformIds) {
     const platform = PLATFORMS.find((p) => p.id === id);
     if (!platform) continue;
     for (const size of platform.sizes) {
       const { width, height, image_size } = size;
       const resizeOnly = "resizeOnly" in size && size.resizeOnly;
+      const deriveFrom = "deriveFrom" in size && size.deriveFrom;
       const entry = { name: platform.name, width, height };
-      if (resizeOnly) {
+      if (deriveFrom) {
+        deriveList.push({
+          kind: "deriveFrom",
+          sourceImageSize: deriveFrom,
+          width,
+          height,
+          platforms: [entry],
+        });
+        if (!generateByRatio.has(deriveFrom)) {
+          generateByRatio.set(deriveFrom, { image_size: deriveFrom, platforms: [entry] });
+        } else {
+          const existing = generateByRatio.get(deriveFrom)!;
+          const isDup = existing.platforms.some((p) => p.name === entry.name && p.width === width && p.height === height);
+          if (!isDup) existing.platforms.push(entry);
+        }
+      } else if (resizeOnly) {
         const key = `${width}-${height}`;
         const existing = resizeByKey.get(key);
         if (existing) {
@@ -169,11 +232,13 @@ function getOutputSizes(selectedPlatformIds: PlatformId[]): OutputEntry[] {
   }
   const generateList = Array.from(generateByRatio.values()).map((o) => ({ kind: "generate" as const, ...o }));
   const resizeList = Array.from(resizeByKey.values()).map((o) => ({ kind: "resize" as const, ...o }));
-  return [...generateList, ...resizeList];
+  return [...generateList, ...resizeList, ...deriveList];
 }
 
 function getResultKey(entry: OutputEntry): string {
-  return entry.kind === "generate" ? entry.image_size : `resize-${entry.width}-${entry.height}`;
+  if (entry.kind === "generate") return entry.image_size;
+  if (entry.kind === "resize") return `resize-${entry.width}-${entry.height}`;
+  return `derive-${entry.sourceImageSize}-${entry.width}-${entry.height}`;
 }
 
 const ASPECT_CLASS: Record<ImageSize, string> = {
@@ -418,6 +483,7 @@ export default function ImageGeneratorPage() {
     });
     setProgress(initialProgress);
 
+    const resultUrls: Record<string, string> = {};
     const runOne = async (image_size: ImageSize, resultKey: string) => {
       try {
         const res = await fetch("/api/generate-cover", {
@@ -433,6 +499,7 @@ export default function ImageGeneratorPage() {
         const taskId = data.taskId;
         const result = await pollTask(taskId);
         if (result.ok) {
+          resultUrls[resultKey] = result.url;
           setResults((prev) => ({ ...prev, [resultKey]: result.url }));
         } else {
           setDebugInfo((result.debug ?? null) as Record<string, unknown> | null);
@@ -468,12 +535,39 @@ export default function ImageGeneratorPage() {
       }
     };
 
+    const runDerive = async (entry: Extract<OutputEntry, { kind: "deriveFrom" }>, sourceUrls: Record<string, string>) => {
+      const key = getResultKey(entry);
+      const sourceUrl = sourceUrls[entry.sourceImageSize];
+      if (!sourceUrl) return;
+      try {
+        const proxyUrl =
+          typeof window !== "undefined" && !sourceUrl.startsWith("blob:")
+            ? `${window.location.origin}/api/proxy-image?url=${encodeURIComponent(sourceUrl)}`
+            : sourceUrl;
+        const blob = await getCenterCroppedBlob(proxyUrl, entry.width, entry.height);
+        const url = URL.createObjectURL(blob);
+        setResults((prev) => ({ ...prev, [key]: url }));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Crop failed");
+        setTaskState("error");
+      } finally {
+        setProgress((prev) => ({ ...prev, [key]: true }));
+      }
+    };
+
     const generateEntries = outputSizes.filter((e): e is Extract<OutputEntry, { kind: "generate" }> => e.kind === "generate");
     const resizeEntries = outputSizes.filter((e): e is Extract<OutputEntry, { kind: "resize" }> => e.kind === "resize");
+    const deriveEntries = outputSizes.filter((e): e is Extract<OutputEntry, { kind: "deriveFrom" }> => e.kind === "deriveFrom");
+
     await Promise.all([
       ...generateEntries.map((e) => runOne(e.image_size, getResultKey(e))),
       ...resizeEntries.map((e) => runResize(e)),
     ]);
+
+    if (deriveEntries.length > 0) {
+      await Promise.all(deriveEntries.map((e) => runDerive(e, resultUrls)));
+    }
+
     setTaskState((prev) => (prev === "error" ? "error" : "success"));
   };
 
@@ -580,7 +674,13 @@ export default function ImageGeneratorPage() {
                 <p className="mt-2 text-xs text-muted-foreground">
                   Will generate:{" "}
                   {outputSizes
-                    .map((s) => (s.kind === "generate" ? s.image_size : `resize ${s.width}×${s.height}`))
+                    .map((s) =>
+                      s.kind === "generate"
+                        ? s.image_size
+                        : s.kind === "resize"
+                          ? `resize ${s.width}×${s.height}`
+                          : `5:7 from 9:16`
+                    )
                     .join(", ")}{" "}
                   — {outputSizes.flatMap((s) => s.platforms.map((p) => `${p.name} ${p.width}×${p.height}`)).join(", ")}
                 </p>
@@ -689,10 +789,19 @@ export default function ImageGeneratorPage() {
             const resultUrl = results[key];
             const done = progress[key];
             const isResize = entry.kind === "resize";
-            const title = isResize ? `Resize ${entry.width}×${entry.height}` : entry.image_size;
-            const aspectClass = isResize ? "aspect-video" : ASPECT_CLASS[entry.image_size];
-            const imgW = isResize ? 640 : entry.kind === "generate" && (entry.image_size === "9:16" || entry.image_size === "2:3" || entry.image_size === "3:4" || entry.image_size === "4:5") ? 360 : 640;
-            const imgH = isResize ? 360 : entry.kind === "generate" && entry.image_size === "9:16" ? 640 : entry.kind === "generate" && (entry.image_size === "16:9" || entry.image_size === "21:9") ? 360 : 480;
+            const isDerive = entry.kind === "deriveFrom";
+            const title = isResize
+              ? `Resize ${entry.width}×${entry.height}`
+              : isDerive
+                ? `5:7 (from 9:16)`
+                : entry.image_size;
+            const aspectClass = isResize
+              ? "aspect-video"
+              : isDerive
+                ? "aspect-[5/7]"
+                : ASPECT_CLASS[entry.image_size];
+            const imgW = isResize ? 640 : isDerive ? 360 : entry.kind === "generate" && (entry.image_size === "9:16" || entry.image_size === "2:3" || entry.image_size === "3:4" || entry.image_size === "4:5") ? 360 : 640;
+            const imgH = isResize ? 360 : isDerive ? 504 : entry.kind === "generate" && entry.image_size === "9:16" ? 640 : entry.kind === "generate" && (entry.image_size === "16:9" || entry.image_size === "21:9") ? 360 : 480;
             const label = `${title} — ${entry.platforms.map((p) => `${p.name} ${p.width}×${p.height}`).join(", ")}`;
             return (
               <Card key={key} className="border-border bg-card overflow-hidden">
@@ -751,7 +860,7 @@ export default function ImageGeneratorPage() {
                   ) : (
                     <div className="flex items-center gap-2 text-muted-foreground py-8">
                       <Loader2 className="h-5 w-5 animate-spin" />
-                      <span className="text-sm">{isResize ? "Resizing…" : "Generating…"}</span>
+                      <span className="text-sm">{isResize ? "Resizing…" : isDerive ? "Cropping…" : "Generating…"}</span>
                     </div>
                   )}
                 </CardContent>
