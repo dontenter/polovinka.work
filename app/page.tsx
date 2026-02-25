@@ -23,7 +23,7 @@ export default function HomePage() {
             Pavel Polovinka
           </h1>
           <p className="mt-4 text-muted-foreground text-sm sm:text-base tracking-wide">
-            Jakarta — Singapore — Amsterdam
+            Indonesia
           </p>
           <div className="mt-8 flex flex-col items-center gap-2">
             <span className="game-label text-xs tracking-[0.15em] uppercase">

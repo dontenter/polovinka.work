@@ -17,7 +17,7 @@ const orbitron = Orbitron({
 export const metadata: Metadata = {
   title: "Pavel Polovinka — polovinka.work",
   description:
-    "Products / Operations / Startups. Gamedev. Jakarta — Singapore — Amsterdam.",
+    "Products / Operations / Startups. Gamedev. Indonesia.",
 };
 
 export default function RootLayout({

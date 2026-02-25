@@ -160,7 +160,9 @@ type TaskState = "idle" | "uploading" | "generating" | "success" | "error";
 
 export default function ImageGeneratorPage() {
   const [sourceType, setSourceType] = useState<"cover" | "icon">("cover");
-  const [imageUrl, setImageUrl] = useState("");
+  const [coverUrl, setCoverUrl] = useState("");
+  const [iconUrl, setIconUrl] = useState("");
+  const imageUrl = sourceType === "cover" ? coverUrl : iconUrl;
   const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformId[]>(["facebook"]);
   const [taskState, setTaskState] = useState<TaskState>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -243,7 +245,9 @@ export default function ImageGeneratorPage() {
   }, [cropModal]);
 
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setImageUrl(e.target.value);
+    const value = e.target.value;
+    if (sourceType === "cover") setCoverUrl(value);
+    else setIconUrl(value);
     setError(null);
   };
 
@@ -448,6 +452,10 @@ export default function ImageGeneratorPage() {
               onClick={() => {
                 setSourceType("cover");
                 setError(null);
+                setIconState((prev) => {
+                  if (prev?.masterUrl?.startsWith("blob:")) URL.revokeObjectURL(prev.masterUrl);
+                  return null;
+                });
               }}
             >
               Cover
