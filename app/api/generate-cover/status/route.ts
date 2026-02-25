@@ -36,15 +36,18 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const successFlag = data.successFlag;
-  const response = data.response || {};
+  // Nano Banana returns { code, msg, data: { successFlag, response, ... } }
+  const record = data.data ?? data;
+  const successFlag = record.successFlag;
+  const response = record.response || {};
   const resultImageUrl = response.resultImageUrl ?? null;
   const errorMessage =
-    data.errorMessage ??
+    record.errorMessage ??
+    record.msg ??
     data.msg ??
-    data.message ??
+    record.message ??
     response?.message ??
-    (typeof data.error === "string" ? data.error : null);
+    (typeof record.error === "string" ? record.error : null);
 
   if (successFlag !== 0 && successFlag !== 1) {
     console.error("[generate-cover/status] Task failed:", taskId, "response:", JSON.stringify(data));
