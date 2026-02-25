@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { put, del } from "@vercel/blob";
 
 const ALLOWED_TYPES = [
   "image/jpeg",
@@ -49,18 +48,40 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Vercel Blob REST API (no @vercel/blob dependency at build time)
   const ext =
     file.name.split(".").pop()?.toLowerCase() ||
     (file.type === "image/svg+xml" ? "svg" : "png");
-  const filename = `icons/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-
-  const blob = await put(filename, file, {
-    access: "public",
-    token,
+  const pathname = `icons/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const baseUrl = process.env.VERCEL_BLOB_API_URL ?? "https://vercel.com/api/blob";
+  const res = await fetch(`${baseUrl}/?${new URLSearchParams({ pathname }).toString()}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "x-vercel-blob-access": "public",
+      "Content-Type": file.type,
+    },
+    body: file,
   });
 
+  if (!res.ok) {
+    const err = await res.text();
+    return NextResponse.json(
+      { error: `Upload failed: ${err || res.statusText}` },
+      { status: res.status >= 500 ? 502 : 400 }
+    );
+  }
+
+  const data = (await res.json()) as { url?: string };
+  if (!data?.url) {
+    return NextResponse.json(
+      { error: "Upload succeeded but no URL returned" },
+      { status: 502 }
+    );
+  }
+
   return NextResponse.json({
-    url: blob.url,
+    url: data.url,
     expectedSize: EXPECTED_SIZE,
     message: "Icon should be 800×800 for best results.",
   });
@@ -70,10 +91,15 @@ export async function DELETE(request: NextRequest) {
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   const url = request.nextUrl.searchParams.get("url");
   if (!token || !url) return NextResponse.json({ ok: false }, { status: 400 });
-  try {
-    await del(url, { token });
-    return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ ok: false }, { status: 400 });
-  }
+  const baseUrl = process.env.VERCEL_BLOB_API_URL ?? "https://vercel.com/api/blob";
+  const res = await fetch(`${baseUrl.replace(/\/?$/, "")}/delete`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ urls: [url] }),
+  });
+  if (!res.ok) return NextResponse.json({ ok: false }, { status: 400 });
+  return NextResponse.json({ ok: true });
 }
