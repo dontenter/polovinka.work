@@ -29,8 +29,9 @@ export async function GET(request: NextRequest) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
+    console.error("[generate-cover/status] Nano Banana request failed:", res.status, data);
     return NextResponse.json(
-      { error: data.msg || "Failed to get task status" },
+      { error: data.msg || "Failed to get task status", debug: data },
       { status: res.status >= 500 ? 502 : 400 }
     );
   }
@@ -38,7 +39,16 @@ export async function GET(request: NextRequest) {
   const successFlag = data.successFlag;
   const response = data.response || {};
   const resultImageUrl = response.resultImageUrl ?? null;
-  const errorMessage = data.errorMessage ?? null;
+  const errorMessage =
+    data.errorMessage ??
+    data.msg ??
+    data.message ??
+    response?.message ??
+    (typeof data.error === "string" ? data.error : null);
+
+  if (successFlag !== 0 && successFlag !== 1) {
+    console.error("[generate-cover/status] Task failed:", taskId, "response:", JSON.stringify(data));
+  }
 
   return NextResponse.json({
     status:
@@ -50,5 +60,9 @@ export async function GET(request: NextRequest) {
     successFlag,
     resultImageUrl,
     errorMessage,
+    debug:
+      successFlag !== 0 && successFlag !== 1
+        ? { raw: data }
+        : undefined,
   });
 }

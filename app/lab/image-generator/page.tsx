@@ -30,6 +30,7 @@ export default function ImageGeneratorPage() {
     "16:9": false,
     "9:16": false,
   });
+  const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const resetPreview = () => {
@@ -79,17 +80,28 @@ export default function ImageGeneratorPage() {
     return data.url;
   };
 
-  const pollTask = async (taskId: string): Promise<string | null> => {
+  const pollTask = async (
+    taskId: string
+  ): Promise<{ ok: true; url: string } | { ok: false; errorMessage: string; debug?: unknown }> => {
     const maxAttempts = 60;
     for (let i = 0; i < maxAttempts; i++) {
       const res = await fetch(`/api/generate-cover/status?taskId=${encodeURIComponent(taskId)}`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Status error");
-      if (data.status === "success" && data.resultImageUrl) return data.resultImageUrl;
-      if (data.status === "failed") throw new Error(data.errorMessage || "Generation failed");
+      if (!res.ok) {
+        console.error("[Image Generator] Status request failed:", data);
+        return { ok: false, errorMessage: data.error || "Status error", debug: data };
+      }
+      if (data.status === "success" && data.resultImageUrl) {
+        return { ok: true, url: data.resultImageUrl };
+      }
+      if (data.status === "failed") {
+        const msg = data.errorMessage || "Generation failed";
+        console.error("[Image Generator] Generation failed. Full response:", data);
+        return { ok: false, errorMessage: msg, debug: data.debug ?? data };
+      }
       await new Promise((r) => setTimeout(r, 3000));
     }
-    throw new Error("Result timeout");
+    return { ok: false, errorMessage: "Result timeout", debug: null };
   };
 
   const handleGenerate = async () => {
@@ -98,7 +110,9 @@ export default function ImageGeneratorPage() {
     let iconUrl: string;
     try {
       iconUrl = await getIconUrl();
+      console.log("[Image Generator] Icon URL resolved:", iconUrl.slice(0, 80) + (iconUrl.length > 80 ? "…" : ""));
     } catch (e) {
+      console.error("[Image Generator] getIconUrl failed:", e);
       setError(e instanceof Error ? e.message : "Error");
       setTaskState("error");
       return;
@@ -116,10 +130,19 @@ export default function ImageGeneratorPage() {
           body: JSON.stringify({ iconUrl, image_size }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Request error");
+        if (!res.ok) {
+          setDebugInfo(data.details ?? data);
+          throw new Error(data.error || "Request error");
+        }
         const taskId = data.taskId;
-        const resultUrl = await pollTask(taskId);
-        setResults((prev) => ({ ...prev, [image_size]: resultUrl }));
+        const result = await pollTask(taskId);
+        if (result.ok) {
+          setResults((prev) => ({ ...prev, [image_size]: result.url }));
+        } else {
+          setDebugInfo(result.debug as Record<string, unknown> | undefined ?? null);
+          setError(result.errorMessage);
+          setTaskState("error");
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : "Generation error");
         setTaskState("error");
@@ -247,9 +270,24 @@ export default function ImageGeneratorPage() {
           )}
 
           {error && (
-            <p className="text-sm text-red-600 dark:text-red-400" role="alert">
-              {error}
-            </p>
+            <div className="space-y-2">
+              <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+                {error}
+              </p>
+              {debugInfo != null && Object.keys(debugInfo).length > 0 && (
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                    Debug: ответ API
+                  </summary>
+                  <pre className="mt-2 max-h-48 overflow-auto rounded border border-border bg-muted/50 p-3 text-left">
+                    {JSON.stringify(debugInfo, null, 2)}
+                  </pre>
+                  <p className="mt-1 text-muted-foreground">
+                    Также смотри консоль браузера (F12 → Console) для логов [Image Generator].
+                  </p>
+                </details>
+              )}
+            </div>
           )}
 
           <Button

@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
+    console.error("[generate-cover] Nano Banana /generate failed:", res.status, data);
     return NextResponse.json(
       { error: data.msg || "Nano Banana request failed", details: data },
       { status: res.status >= 500 ? 502 : 400 }
@@ -68,11 +69,13 @@ export async function POST(request: NextRequest) {
   }
 
   if (data.code !== 200 || !data.data?.taskId) {
+    console.error("[generate-cover] Task not created:", data);
     return NextResponse.json(
       { error: data.msg || "Failed to create task", details: data },
       { status: 400 }
     );
   }
 
+  console.log("[generate-cover] Task created:", data.data.taskId, "iconUrl:", iconUrl.slice(0, 80) + (iconUrl.length > 80 ? "…" : ""));
   return NextResponse.json({ taskId: data.data.taskId });
 }
