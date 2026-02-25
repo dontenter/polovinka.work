@@ -52,7 +52,8 @@ export async function POST(request: NextRequest) {
   const ext =
     file.name.split(".").pop()?.toLowerCase() ||
     (file.type === "image/svg+xml" ? "svg" : "png");
-  const pathname = `icons/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  // pathname: alphanumeric, hyphen, dot only — some Blob setups reject paths with slashes
+  const pathname = `icon-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
   const baseUrl = process.env.VERCEL_BLOB_API_URL ?? "https://vercel.com/api/blob";
   const res = await fetch(`${baseUrl}/?${new URLSearchParams({ pathname }).toString()}`, {
     method: "PUT",
