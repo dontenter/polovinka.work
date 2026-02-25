@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let buffer = Buffer.from(await imageRes.arrayBuffer());
+  const buffer = Buffer.from(await imageRes.arrayBuffer());
   if (buffer.byteLength > MAX_SIZE) {
     return NextResponse.json(
       { error: `Image too large. Max ${MAX_SIZE / 1024 / 1024}MB.` },
@@ -107,14 +107,16 @@ export async function POST(request: NextRequest) {
 
   let uploadContentType = (contentType?.split(";")[0].trim() ?? "image/png").toLowerCase();
   let ext = getExtFromContentType(contentType);
+  let uploadBuffer: Buffer = buffer;
 
   // Convert AVIF/WebP/SVG to JPEG so Gemini (Nano Banana) receives a supported format.
   if (CONVERT_TO_JPEG.some((t) => uploadContentType === t)) {
     try {
-      buffer = await sharp(buffer)
+      const jpegBuffer = await sharp(buffer)
         .flatten({ background: { r: 255, g: 255, b: 255 } })
         .jpeg({ quality: 90 })
         .toBuffer();
+      uploadBuffer = Buffer.from(jpegBuffer);
       uploadContentType = "image/jpeg";
       ext = "jpg";
     } catch (err) {
@@ -130,7 +132,7 @@ export async function POST(request: NextRequest) {
 
   let blob: { url: string };
   try {
-    blob = await put(pathname, buffer, {
+    blob = await put(pathname, uploadBuffer, {
       access: "public",
       contentType: uploadContentType,
     });
