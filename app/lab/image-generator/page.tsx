@@ -44,7 +44,7 @@ export default function ImageGeneratorPage() {
     const f = e.target.files?.[0];
     if (!f) return;
     if (!ACCEPT.split(",").some((t) => t === f.type)) {
-      setError("Формат не поддерживается. Используйте jpg, png, webp, avif или svg.");
+      setError("Format not supported. Use jpg, png, webp, avif or svg.");
       return;
     }
     setFile(f);
@@ -60,15 +60,15 @@ export default function ImageGeneratorPage() {
   const getIconUrl = async (): Promise<string> => {
     if (mode === "url") {
       const url = imageUrl.trim();
-      if (!url) throw new Error("Введите URL иконки.");
+      if (!url) throw new Error("Enter icon URL.");
       return url;
     }
-    if (!file) throw new Error("Загрузите файл или введите URL.");
+    if (!file) throw new Error("Upload a file or enter a URL.");
     const form = new FormData();
     form.append("file", file);
     const res = await fetch("/api/upload-icon", { method: "POST", body: form });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Ошибка загрузки");
+    if (!res.ok) throw new Error(data.error || "Upload error");
     return data.url;
   };
 
@@ -77,12 +77,12 @@ export default function ImageGeneratorPage() {
     for (let i = 0; i < maxAttempts; i++) {
       const res = await fetch(`/api/generate-cover/status?taskId=${encodeURIComponent(taskId)}`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Ошибка статуса");
+      if (!res.ok) throw new Error(data.error || "Status error");
       if (data.status === "success" && data.resultImageUrl) return data.resultImageUrl;
-      if (data.status === "failed") throw new Error(data.errorMessage || "Генерация не удалась");
+      if (data.status === "failed") throw new Error(data.errorMessage || "Generation failed");
       await new Promise((r) => setTimeout(r, 3000));
     }
-    throw new Error("Таймаут ожидания результата");
+    throw new Error("Result timeout");
   };
 
   const handleGenerate = async () => {
@@ -92,7 +92,7 @@ export default function ImageGeneratorPage() {
     try {
       iconUrl = await getIconUrl();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Ошибка");
+      setError(e instanceof Error ? e.message : "Error");
       setTaskState("error");
       return;
     }
@@ -109,12 +109,12 @@ export default function ImageGeneratorPage() {
           body: JSON.stringify({ iconUrl, image_size }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Ошибка запроса");
+        if (!res.ok) throw new Error(data.error || "Request error");
         const taskId = data.taskId;
         const resultUrl = await pollTask(taskId);
         setResults((prev) => ({ ...prev, [image_size]: resultUrl }));
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Ошибка генерации");
+        setError(e instanceof Error ? e.message : "Generation error");
         setTaskState("error");
       } finally {
         setProgress((prev) => ({ ...prev, [image_size]: true }));
@@ -134,7 +134,7 @@ export default function ImageGeneratorPage() {
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Назад в Lab
+          Back to Lab
         </Link>
       </div>
 
@@ -147,16 +147,16 @@ export default function ImageGeneratorPage() {
           Image Generator
         </h1>
         <p className="mt-3 text-muted-foreground max-w-xl">
-          Генерация обложек игр по иконке 800×800. На выходе — обложки 1920×1080 и 1080×1920
+          Generate game covers from an 800×800 icon. Output: 1920×1080 and 1080×1920 covers
           (Nano Banana).
         </p>
       </div>
 
       <Card className="border-border bg-card mb-10">
         <CardHeader>
-          <CardTitle className="text-lg">Иконка игры (800×800)</CardTitle>
+          <CardTitle className="text-lg">Game icon (800×800)</CardTitle>
           <CardDescription>
-            JPG, JPEG, PNG, WebP, AVIF или SVG. Загрузите файл или вставьте публичный URL.
+            JPG, JPEG, PNG, WebP, AVIF or SVG. Upload a file or paste a public URL.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -172,7 +172,7 @@ export default function ImageGeneratorPage() {
               }}
             >
               <Upload className="h-4 w-4 mr-2" />
-              Файл
+              File
             </Button>
             <Button
               type="button"
@@ -206,7 +206,7 @@ export default function ImageGeneratorPage() {
                   onClick={() => fileInputRef.current?.click()}
                   className="shrink-0"
                 >
-                  Выбрать файл
+                  Choose file
                 </Button>
                 {previewUrl && (
                   <div className="relative w-24 h-24 rounded-lg border border-border overflow-hidden bg-muted">
@@ -257,10 +257,10 @@ export default function ImageGeneratorPage() {
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             )}
             {taskState === "uploading"
-              ? "Загрузка…"
+              ? "Uploading…"
               : taskState === "generating"
-                ? "Генерация…"
-                : "Сгенерировать обложки"}
+                ? "Generating…"
+                : "Generate covers"}
           </Button>
         </CardContent>
       </Card>
@@ -298,15 +298,15 @@ export default function ImageGeneratorPage() {
                       className="inline-flex items-center gap-2 text-sm text-accent hover:underline"
                     >
                       <Download className="h-4 w-4" />
-                      Скачать
+                      Download
                     </a>
                   </div>
                 ) : progress[image_size] && error ? (
-                  <p className="text-sm text-muted-foreground">Ошибка для этого размера</p>
+                  <p className="text-sm text-muted-foreground">Error for this size</p>
                 ) : (
                   <div className="flex items-center gap-2 text-muted-foreground py-8">
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    <span className="text-sm">Генерация…</span>
+                    <span className="text-sm">Generating…</span>
                   </div>
                 )}
               </CardContent>
