@@ -1,3 +1,4 @@
+import { put } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
 
 const ALLOWED_TYPES = [
@@ -101,38 +102,23 @@ export async function POST(request: NextRequest) {
 
   const ext = getExtFromContentType(contentType);
   const pathname = `icon-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-  const baseUrl = process.env.VERCEL_BLOB_API_URL ?? "https://vercel.com/api/blob";
-  const blobRes = await fetch(
-    `${baseUrl}/?${new URLSearchParams({ pathname }).toString()}`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "x-vercel-blob-access": "public",
-        "Content-Type": contentType ?? "image/png",
-      },
-      body: buffer,
-    }
-  );
 
-  if (!blobRes.ok) {
-    const err = await blobRes.text();
+  let blob: { url: string };
+  try {
+    blob = await put(pathname, buffer, {
+      access: "public",
+      contentType: (contentType?.split(";")[0].trim() ?? "image/png").toLowerCase(),
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Upload failed";
     return NextResponse.json(
-      { error: `Upload failed: ${err || blobRes.statusText}` },
-      { status: blobRes.status >= 500 ? 502 : 400 }
-    );
-  }
-
-  const data = (await blobRes.json()) as { url?: string };
-  if (!data?.url) {
-    return NextResponse.json(
-      { error: "Upload succeeded but no URL returned" },
+      { error: `Upload failed: ${message}` },
       { status: 502 }
     );
   }
 
   return NextResponse.json({
-    url: data.url,
+    url: blob.url,
     message: "Icon fetched and uploaded. Use 800×800 for best results.",
   });
 }
