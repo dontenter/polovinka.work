@@ -4,7 +4,8 @@ const NANOBANANA_BASE = "https://api.nanobananaapi.ai/api/v1/nanobanana";
 const COVER_PROMPT =
   "Professional game cover art, high quality, based on the game icon. Expand the scene into a full cover image, keep the same style and mood. No text, no logos.";
 
-export type ImageSize = "16:9" | "9:16";
+const IMAGE_SIZES = ["1:1", "9:16", "16:9", "3:4", "4:3", "3:2", "2:3", "5:4", "4:5", "21:9"] as const;
+export type ImageSize = (typeof IMAGE_SIZES)[number];
 
 export async function POST(request: NextRequest) {
   const apiKey = process.env.NANOBANANA_API_KEY;
@@ -29,9 +30,9 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-  if (!image_size || !["16:9", "9:16"].includes(image_size)) {
+  if (!image_size || !IMAGE_SIZES.includes(image_size)) {
     return NextResponse.json(
-      { error: "image_size must be 16:9 or 9:16" },
+      { error: `image_size must be one of: ${IMAGE_SIZES.join(", ")}` },
       { status: 400 }
     );
   }
