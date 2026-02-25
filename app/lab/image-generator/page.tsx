@@ -120,10 +120,10 @@ const PLATFORMS = [
     id: "facebook",
     name: "Facebook",
     sizes: [
-      { width: 1920, height: 1080, image_size: "16:9" as const },
+      { width: 1920, height: 1080, image_size: "16:9" as const, resizeOnly: true },
       { width: 1080, height: 1920, image_size: "9:16" as const },
       { width: 1600, height: 300, image_size: "21:9" as const },
-      { width: 1200, height: 627, image_size: "16:9" as const },
+      { width: 1200, height: 627, image_size: "16:9" as const, resizeOnly: true },
     ],
   },
   {
