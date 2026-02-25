@@ -168,7 +168,7 @@ export default function ImageGeneratorPage() {
     );
   };
 
-  const onCropComplete = useCallback((_cropArea: Area, croppedAreaPixels: Area) => {
+  const onCropChangeCallback = useCallback((_cropArea: Area, croppedAreaPixels: Area) => {
     cropAreaRef.current = croppedAreaPixels;
   }, []);
 
@@ -176,15 +176,24 @@ export default function ImageGeneratorPage() {
     setCrop({ x: 0, y: 0 });
     setZoom(1);
     cropAreaRef.current = null;
-    setCropModal({ imageUrl, targetWidth: width, targetHeight: height, label });
+    const proxyUrl =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/api/proxy-image?url=${encodeURIComponent(imageUrl)}`
+        : imageUrl;
+    setCropModal({ imageUrl: proxyUrl, targetWidth: width, targetHeight: height, label });
   };
 
   const handleCropDownload = useCallback(async () => {
-    if (!cropModal || !cropAreaRef.current) return;
+    if (!cropModal) return;
+    const area = cropAreaRef.current;
+    if (!area) {
+      console.warn("[Image Generator] No crop area yet, waiting for cropper…");
+      return;
+    }
     try {
       const blob = await getCroppedImageBlob(
         cropModal.imageUrl,
-        cropAreaRef.current,
+        area,
         cropModal.targetWidth,
         cropModal.targetHeight
       );
@@ -192,7 +201,9 @@ export default function ImageGeneratorPage() {
       const a = document.createElement("a");
       a.href = url;
       a.download = `cover-${cropModal.targetWidth}x${cropModal.targetHeight}-${cropModal.label.replace(/\s+/g, "-")}.png`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
       setCropModal(null);
     } catch (e) {
@@ -227,14 +238,14 @@ export default function ImageGeneratorPage() {
   const getIconUrl = async (): Promise<string> => {
     if (mode === "url") {
       const url = imageUrl.trim();
-      if (!url) throw new Error("Введите URL обложки.");
+      if (!url) throw new Error("Enter cover URL.");
       const res = await fetch("/api/fetch-icon", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Не удалось загрузить изображение по URL");
+      if (!res.ok) throw new Error(data.error || "Failed to fetch image from URL");
       return data.url;
     }
     if (!file) throw new Error("Загрузите файл или введите URL.");
@@ -242,7 +253,7 @@ export default function ImageGeneratorPage() {
     form.append("file", file);
     const res = await fetch("/api/upload-icon", { method: "POST", body: form });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Ошибка загрузки");
+    if (!res.ok) throw new Error(data.error || "Upload error");
     return data.url;
   };
 
@@ -349,15 +360,15 @@ export default function ImageGeneratorPage() {
           Image Generator
         </h1>
         <p className="mt-3 text-muted-foreground max-w-xl">
-          Обложки для игровых площадок из исходной обложки 16:9. Выберите площадки — сгенерируются только нужные форматы (Nano Banana).
+          Game store covers from a 16:9 source cover. Select platforms — only the required formats are generated (Nano Banana).
         </p>
       </div>
 
       <Card className="border-border bg-card mb-10">
         <CardHeader>
-          <CardTitle className="text-lg">Исходная обложка 16:9</CardTitle>
+          <CardTitle className="text-lg">Source cover 16:9</CardTitle>
           <CardDescription>
-            Ссылка или файл обложки в формате 16:9. JPG, PNG, WebP, AVIF или SVG.
+            URL or file of a 16:9 cover. JPG, PNG, WebP, AVIF or SVG.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -441,9 +452,9 @@ export default function ImageGeneratorPage() {
           )}
 
           <div>
-            <CardTitle className="text-base mb-2">Площадки</CardTitle>
+            <CardTitle className="text-base mb-2">Platforms</CardTitle>
             <CardDescription className="mb-3">
-              Выберите площадки — будут сгенерированы только нужные размеры.
+              Select platforms — only the required sizes will be generated.
             </CardDescription>
             <div className="flex flex-wrap gap-3">
               {PLATFORMS.map(({ id, name }) => (
@@ -463,7 +474,7 @@ export default function ImageGeneratorPage() {
             </div>
             {hasSelection && (
               <p className="mt-2 text-xs text-muted-foreground">
-                Будет сгенерировано: {outputSizes.map((s) => s.image_size).join(", ")} — для{" "}
+                Will generate: {outputSizes.map((s) => s.image_size).join(", ")} — for{" "}
                 {outputSizes.flatMap((s) => s.platforms.map((p) => `${p.name} ${p.width}×${p.height}`)).join(", ")}
               </p>
             )}
@@ -477,13 +488,13 @@ export default function ImageGeneratorPage() {
               {debugInfo != null && Object.keys(debugInfo).length > 0 && (
                 <details className="text-xs">
                   <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                    Debug: ответ API
+                    Debug: API response
                   </summary>
                   <pre className="mt-2 max-h-48 overflow-auto rounded border border-border bg-muted/50 p-3 text-left">
                     {JSON.stringify(debugInfo, null, 2)}
                   </pre>
                   <p className="mt-1 text-muted-foreground">
-                    Также смотри консоль браузера (F12 → Console) для логов [Image Generator].
+                    Also check the browser console (F12 → Console) for [Image Generator] logs.
                   </p>
                 </details>
               )}
@@ -503,10 +514,10 @@ export default function ImageGeneratorPage() {
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             )}
             {taskState === "uploading"
-              ? "Загрузка…"
+              ? "Uploading…"
               : taskState === "generating"
-                ? "Генерация…"
-                : "Сгенерировать обложки"}
+                ? "Generating…"
+                : "Generate covers"}
           </Button>
         </CardContent>
       </Card>
@@ -552,7 +563,7 @@ export default function ImageGeneratorPage() {
                           className="inline-flex items-center gap-2 text-sm text-accent hover:underline"
                         >
                           <Download className="h-4 w-4" />
-                          Скачать как есть
+                          Download as-is
                         </a>
                         {platforms.map((p) => (
                           <Button
@@ -570,11 +581,11 @@ export default function ImageGeneratorPage() {
                       </div>
                     </div>
                   ) : done && error ? (
-                    <p className="text-sm text-muted-foreground">Ошибка для этого формата</p>
+                    <p className="text-sm text-muted-foreground">Error for this format</p>
                   ) : (
                     <div className="flex items-center gap-2 text-muted-foreground py-8">
                       <Loader2 className="h-5 w-5 animate-spin" />
-                      <span className="text-sm">Генерация…</span>
+                      <span className="text-sm">Generating…</span>
                     </div>
                   )}
                 </CardContent>
@@ -588,10 +599,10 @@ export default function ImageGeneratorPage() {
         <div className="fixed inset-0 z-50 bg-background flex flex-col">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
             <h3 className="font-semibold text-foreground">
-              Кроп под {cropModal.targetWidth}×{cropModal.targetHeight}
+              Crop for {cropModal.targetWidth}×{cropModal.targetHeight}
             </h3>
             <Button variant="ghost" size="sm" onClick={() => setCropModal(null)}>
-              Закрыть
+              Close
             </Button>
           </div>
           <div className="relative flex-1 min-h-0 w-full" style={{ minHeight: "400px" }}>
@@ -601,7 +612,8 @@ export default function ImageGeneratorPage() {
               zoom={zoom}
               aspect={cropModal.targetWidth / cropModal.targetHeight}
               onCropChange={setCrop}
-              onCropComplete={onCropComplete}
+              onCropComplete={onCropChangeCallback}
+              onCropAreaChange={onCropChangeCallback}
               onZoomChange={setZoom}
               style={{ containerStyle: { backgroundColor: "hsl(var(--muted))" } }}
             />
@@ -609,10 +621,10 @@ export default function ImageGeneratorPage() {
           <div className="flex items-center gap-3 px-4 py-3 border-t border-border shrink-0">
             <Button onClick={handleCropDownload}>
               <Download className="h-4 w-4 mr-2" />
-              Скачать {cropModal.targetWidth}×{cropModal.targetHeight}
+              Download {cropModal.targetWidth}×{cropModal.targetHeight}
             </Button>
             <p className="text-sm text-muted-foreground">
-              Выберите область и нажмите «Скачать». Соотношение рамки фиксировано.
+              Position the crop area and click Download. The crop frame has a fixed aspect ratio.
             </p>
           </div>
         </div>
