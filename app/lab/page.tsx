@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, ImageIcon, Wrench } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MessageSquare, ImageIcon, Wrench, LogOut } from "lucide-react";
 
 const comingSoonTools = [
   {
@@ -27,7 +28,8 @@ export const metadata = {
 export default function LabPage() {
   return (
     <div className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-      <div className="mb-12">
+      <div className="mb-12 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
         <p className="text-sm font-medium text-muted-foreground tracking-widest uppercase mb-2">
           Tools & experiments
         </p>
@@ -38,6 +40,13 @@ export default function LabPage() {
           Small tools and prototypes — AI chat, image generation, and other experiments. New items
           will show up here as they’re ready.
         </p>
+        </div>
+        <form action="/api/auth/lab/logout" method="POST">
+          <Button type="submit" variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign out
+          </Button>
+        </form>
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
