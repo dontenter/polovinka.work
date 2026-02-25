@@ -1,12 +1,33 @@
 "use client";
 
-import { useState, useRef, useMemo, useCallback } from "react";
+import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Cropper, { Area } from "react-easy-crop";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, Upload, Link2, Loader2, Download, ArrowLeft, Crop } from "lucide-react";
+import { ImageIcon, Loader2, Download, ArrowLeft, Crop } from "lucide-react";
+
+const ICON_DOWNLOAD_SIZES = [1080, 1024, 512, 450, 300, 192, 16] as const;
+
+async function loadImageAsCanvas(url: string, width: number, height: number): Promise<HTMLCanvasElement> {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new window.Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = url;
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2d not available");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, 0, 0, width, height);
+  return canvas;
+}
 
 async function getCroppedImageBlob(
   imageUrl: string,
@@ -42,8 +63,6 @@ async function getCroppedImageBlob(
   });
 }
 
-const ACCEPT = "image/jpeg,image/jpg,image/png,image/webp,image/avif,image/svg+xml";
-
 type ImageSize =
   | "1:1"
   | "9:16"
@@ -63,6 +82,8 @@ const PLATFORMS = [
     sizes: [
       { width: 1920, height: 1080, image_size: "16:9" as const },
       { width: 1080, height: 1920, image_size: "9:16" as const },
+      { width: 1600, height: 300, image_size: "21:9" as const },
+      { width: 1200, height: 627, image_size: "16:9" as const },
     ],
   },
   {
@@ -138,10 +159,8 @@ const ASPECT_CLASS: Record<ImageSize, string> = {
 type TaskState = "idle" | "uploading" | "generating" | "success" | "error";
 
 export default function ImageGeneratorPage() {
-  const [mode, setMode] = useState<"file" | "url">("file");
-  const [file, setFile] = useState<File | null>(null);
+  const [sourceType, setSourceType] = useState<"cover" | "icon">("cover");
   const [imageUrl, setImageUrl] = useState("");
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformId[]>(["facebook"]);
   const [taskState, setTaskState] = useState<TaskState>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -157,7 +176,19 @@ export default function ImageGeneratorPage() {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const cropAreaRef = useRef<Area | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [iconState, setIconState] = useState<{
+    masterUrl: string;
+  } | null>(null);
+  const [iconLoading, setIconLoading] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (iconState?.masterUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(iconState.masterUrl);
+      }
+    };
+  }, [iconState?.masterUrl]);
 
   const outputSizes = useMemo(() => getOutputSizes(selectedPlatforms), [selectedPlatforms]);
   const hasSelection = selectedPlatforms.length > 0;
@@ -211,51 +242,87 @@ export default function ImageGeneratorPage() {
     }
   }, [cropModal]);
 
-  const resetPreview = () => {
-    if (previewUrl && previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    resetPreview();
-    setFile(null);
-    setError(null);
-    const f = e.target.files?.[0];
-    if (!f) return;
-    if (!ACCEPT.split(",").some((t) => t === f.type)) {
-      setError("Format not supported. Use jpg, png, webp, avif or svg.");
-      return;
-    }
-    setFile(f);
-    setPreviewUrl(URL.createObjectURL(f));
-  };
-
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setImageUrl(e.target.value);
     setError(null);
   };
 
   const getIconUrl = async (): Promise<string> => {
-    if (mode === "url") {
-      const url = imageUrl.trim();
-      if (!url) throw new Error("Enter cover URL.");
-      const res = await fetch("/api/fetch-icon", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to fetch image from URL");
-      return data.url;
-    }
-    if (!file) throw new Error("Загрузите файл или введите URL.");
-    const form = new FormData();
-    form.append("file", file);
-    const res = await fetch("/api/upload-icon", { method: "POST", body: form });
+    const url = imageUrl.trim();
+    if (!url) throw new Error("Enter image URL.");
+    const res = await fetch("/api/fetch-icon", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Upload error");
+    if (!res.ok) throw new Error(data.error || "Failed to fetch image from URL");
     return data.url;
   };
+
+  const handleProcessIcon = useCallback(async () => {
+    setError(null);
+    setIconState((prev) => {
+      if (prev?.masterUrl?.startsWith("blob:")) URL.revokeObjectURL(prev.masterUrl);
+      return null;
+    });
+    const url = imageUrl.trim();
+    if (!url) {
+      setError("Enter icon URL.");
+      return;
+    }
+    setIconLoading(true);
+    try {
+      const resolvedUrl = await getIconUrl();
+      const proxyUrl =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/api/proxy-image?url=${encodeURIComponent(resolvedUrl)}`
+          : resolvedUrl;
+      const canvas = await loadImageAsCanvas(proxyUrl, 1080, 1080);
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png", 0.95);
+      });
+      const masterUrl = URL.createObjectURL(blob);
+      setIconState({ masterUrl });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to process icon");
+    } finally {
+      setIconLoading(false);
+    }
+  }, [imageUrl]);
+
+  const downloadIconSize = useCallback(async (size: number) => {
+    if (!iconState) return;
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new window.Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = iconState.masterUrl;
+      });
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(img, 0, 0, size, size);
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `icon-${size}x${size}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, "image/png", 0.95);
+    } catch (e) {
+      console.error("[Image Generator] Download icon size failed:", e);
+    }
+  }, [iconState]);
 
   const pollTask = async (
     taskId: string
@@ -282,6 +349,7 @@ export default function ImageGeneratorPage() {
   };
 
   const handleGenerate = async () => {
+    if (sourceType !== "cover") return;
     setError(null);
     setDebugInfo(null);
     setTaskState("uploading");
@@ -366,119 +434,82 @@ export default function ImageGeneratorPage() {
 
       <Card className="border-border bg-card mb-10">
         <CardHeader>
-          <CardTitle className="text-lg">Source cover 16:9</CardTitle>
+          <CardTitle className="text-lg">Source</CardTitle>
           <CardDescription>
-            URL or file of a 16:9 cover. JPG, PNG, WebP, AVIF or SVG.
+            Image URL. 16:9 cover for platform generation or icon for square resize.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex gap-2">
             <Button
               type="button"
-              variant={mode === "file" ? "default" : "outline"}
+              variant={sourceType === "cover" ? "default" : "outline"}
               size="sm"
               onClick={() => {
-                setMode("file");
+                setSourceType("cover");
                 setError(null);
-                setImageUrl("");
               }}
             >
-              <Upload className="h-4 w-4 mr-2" />
-              File
+              Cover
             </Button>
             <Button
               type="button"
-              variant={mode === "url" ? "default" : "outline"}
+              variant={sourceType === "icon" ? "default" : "outline"}
               size="sm"
               onClick={() => {
-                setMode("url");
+                setSourceType("icon");
                 setError(null);
-                setFile(null);
-                resetPreview();
+                setIconState((prev) => {
+                  if (prev?.masterUrl?.startsWith("blob:")) URL.revokeObjectURL(prev.masterUrl);
+                  return null;
+                });
               }}
             >
-              <Link2 className="h-4 w-4 mr-2" />
-              URL
+              Icon
             </Button>
           </div>
 
-          {mode === "file" && (
-            <div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={ACCEPT}
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <div className="flex flex-col sm:flex-row gap-4 items-start">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="shrink-0"
-                >
-                  Choose file
-                </Button>
-                {previewUrl && (
-                  <div className="relative w-40 aspect-video rounded-lg border border-border overflow-hidden bg-muted">
-                    <Image
-                      src={previewUrl}
-                      alt="Preview"
-                      width={160}
-                      height={90}
-                      className="object-cover w-full h-full"
-                      unoptimized
-                    />
-                  </div>
-                )}
-                {file && (
-                  <p className="text-sm text-muted-foreground">
-                    {file.name} ({(file.size / 1024).toFixed(1)} KB)
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {mode === "url" && (
+          <div>
+            <label className="text-sm font-medium text-foreground block mb-2">Image URL</label>
             <input
               type="url"
-              placeholder="https://example.com/cover-16x9.jpg"
+              placeholder="https://example.com/cover.jpg or https://example.com/icon.png"
               value={imageUrl}
               onChange={handleUrlChange}
               className="w-full max-w-md px-3 py-2 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
-          )}
-
-          <div>
-            <CardTitle className="text-base mb-2">Platforms</CardTitle>
-            <CardDescription className="mb-3">
-              Select platforms — only the required sizes will be generated.
-            </CardDescription>
-            <div className="flex flex-wrap gap-3">
-              {PLATFORMS.map(({ id, name }) => (
-                <label
-                  key={id}
-                  className="flex items-center gap-2 cursor-pointer rounded-md border border-border px-3 py-2 hover:bg-muted/50 has-[:checked]:border-ring has-[:checked]:bg-muted/50"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedPlatforms.includes(id)}
-                    onChange={() => togglePlatform(id)}
-                    className="rounded border-border"
-                  />
-                  <span className="text-sm font-medium">{name}</span>
-                </label>
-              ))}
-            </div>
-            {hasSelection && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                Will generate: {outputSizes.map((s) => s.image_size).join(", ")} — for{" "}
-                {outputSizes.flatMap((s) => s.platforms.map((p) => `${p.name} ${p.width}×${p.height}`)).join(", ")}
-              </p>
-            )}
           </div>
+
+          {sourceType === "cover" && (
+            <div>
+              <CardTitle className="text-base mb-2">Platforms</CardTitle>
+              <CardDescription className="mb-3">
+                Select platforms — only the required formats will be generated.
+              </CardDescription>
+              <div className="flex flex-wrap gap-3">
+                {PLATFORMS.map(({ id, name }) => (
+                  <label
+                    key={id}
+                    className="flex items-center gap-2 cursor-pointer rounded-md border border-border px-3 py-2 hover:bg-muted/50 has-[:checked]:border-ring has-[:checked]:bg-muted/50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedPlatforms.includes(id)}
+                      onChange={() => togglePlatform(id)}
+                      className="rounded border-border"
+                    />
+                    <span className="text-sm font-medium">{name}</span>
+                  </label>
+                ))}
+              </div>
+              {hasSelection && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Will generate: {outputSizes.map((s) => s.image_size).join(", ")} —{" "}
+                  {outputSizes.flatMap((s) => s.platforms.map((p) => `${p.name} ${p.width}×${p.height}`)).join(", ")}
+                </p>
+              )}
+            </div>
+          )}
 
           {error && (
             <div className="space-y-2">
@@ -501,28 +532,80 @@ export default function ImageGeneratorPage() {
             </div>
           )}
 
-          <Button
-            onClick={handleGenerate}
-            disabled={
-              taskState === "uploading" ||
-              taskState === "generating" ||
-              !hasSelection ||
-              (mode === "file" ? !file : !imageUrl.trim())
-            }
-          >
-            {(taskState === "uploading" || taskState === "generating") && (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            )}
-            {taskState === "uploading"
-              ? "Uploading…"
-              : taskState === "generating"
-                ? "Generating…"
-                : "Generate covers"}
-          </Button>
+          {sourceType === "cover" && (
+            <Button
+              onClick={handleGenerate}
+              disabled={
+                taskState === "uploading" ||
+                taskState === "generating" ||
+                !hasSelection ||
+                !imageUrl.trim()
+              }
+            >
+              {(taskState === "uploading" || taskState === "generating") && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              {taskState === "uploading"
+                ? "Uploading…"
+                : taskState === "generating"
+                  ? "Generating…"
+                  : "Generate covers"}
+            </Button>
+          )}
+
+          {sourceType === "icon" && (
+            <Button
+              onClick={handleProcessIcon}
+              disabled={iconLoading || !imageUrl.trim()}
+            >
+              {iconLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {iconLoading ? "Processing…" : "Scale to 1080×1080"}
+            </Button>
+          )}
         </CardContent>
       </Card>
 
-      {(outputSizes.some((s) => results[s.image_size] || progress[s.image_size]) || taskState === "generating") && (
+      {sourceType === "icon" && iconState && (
+        <Card className="border-border bg-card mb-10">
+          <CardHeader>
+            <CardTitle className="text-lg">Icon 1080×1080</CardTitle>
+            <CardDescription>
+              Download the size you need.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex flex-col sm:flex-row gap-6 items-start">
+              <div className="relative w-48 h-48 rounded-lg border border-border overflow-hidden bg-muted shrink-0">
+                <Image
+                  src={iconState.masterUrl}
+                  alt="Icon 1080×1080"
+                  width={192}
+                  height={192}
+                  className="object-cover w-full h-full"
+                  unoptimized
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {ICON_DOWNLOAD_SIZES.map((size) => (
+                  <Button
+                    key={size}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => downloadIconSize(size)}
+                  >
+                    <Download className="h-3.5 w-3.5 mr-1.5" />
+                    {size}×{size}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {sourceType === "cover" &&
+        (outputSizes.some((s) => results[s.image_size] || progress[s.image_size]) || taskState === "generating") && (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {outputSizes.map(({ image_size, platforms }) => {
             const resultUrl = results[image_size];

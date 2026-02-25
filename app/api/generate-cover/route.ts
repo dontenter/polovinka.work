@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const NANOBANANA_BASE = "https://api.nanobananaapi.ai/api/v1/nanobanana";
 const COVER_PROMPT =
-  "Professional game cover art, high quality, based on the game icon. Expand the scene into a full cover image, keep the same style and mood. No text, no logos.";
+  "A clean, highly polished re-rendering of the browser game cover from the source image. Strictly maintain the original simple art style, characters, and composition. Enhance the visual clarity with vibrant, saturated colors, smooth textures. Crisp graphics, professional mobile game art standard.";
 
 const IMAGE_SIZES = ["1:1", "9:16", "16:9", "3:4", "4:3", "3:2", "2:3", "5:4", "4:5", "21:9"] as const;
 export type ImageSize = (typeof IMAGE_SIZES)[number];
