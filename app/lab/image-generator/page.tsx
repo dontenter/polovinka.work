@@ -61,7 +61,14 @@ export default function ImageGeneratorPage() {
     if (mode === "url") {
       const url = imageUrl.trim();
       if (!url) throw new Error("Enter icon URL.");
-      return url;
+      const res = await fetch("/api/fetch-icon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to fetch image from URL");
+      return data.url;
     }
     if (!file) throw new Error("Upload a file or enter a URL.");
     const form = new FormData();
