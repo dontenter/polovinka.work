@@ -14,18 +14,24 @@ export function SiteNav() {
 
   return (
     <nav className="flex items-center gap-6 text-sm font-medium">
-      {navItems.map(({ href, label }) => (
-        <Link
-          key={href}
-          href={href}
-          className={cn(
-            "transition-colors hover:text-foreground",
-            pathname === href ? "text-foreground" : "text-muted-foreground"
-          )}
-        >
-          {label}
-        </Link>
-      ))}
+      {navItems.map(({ href, label }) => {
+        // On login page, "Lab" must not link to /lab (causes redirect and requires second click to submit)
+        const isLabLogin = pathname === "/lab/login" && href === "/lab";
+        const navHref = isLabLogin ? "/lab/login" : href;
+        const isActive = pathname === href || (isLabLogin && pathname === "/lab/login");
+        return (
+          <Link
+            key={href}
+            href={navHref}
+            className={cn(
+              "transition-colors hover:text-foreground",
+              isActive ? "text-foreground" : "text-muted-foreground"
+            )}
+          >
+            {label}
+          </Link>
+        );
+      })}
     </nav>
   );
 }
