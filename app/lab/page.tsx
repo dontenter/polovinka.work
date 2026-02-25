@@ -65,9 +65,11 @@ export default function LabPage() {
               <CardDescription className="text-sm leading-relaxed">
                 {description}
               </CardDescription>
-              <p className="mt-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                Coming soon
-              </p>
+              {title !== "Image Generator" && (
+                <p className="mt-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                  Coming soon
+                </p>
+              )}
             </CardContent>
           </Card>
         ))}
