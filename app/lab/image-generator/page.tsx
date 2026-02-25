@@ -73,6 +73,7 @@ type ImageSize =
   | "2:3"
   | "5:4"
   | "4:5"
+  | "5:7"
   | "21:9";
 
 const PLATFORMS = [
@@ -117,30 +118,62 @@ const PLATFORMS = [
     name: "Xiaomi",
     sizes: [{ width: 1110, height: 684, image_size: "3:2" as const }],
   },
+  {
+    id: "youtube",
+    name: "YouTube",
+    sizes: [
+      { width: 540, height: 756, image_size: "5:7" as const },
+      { width: 1280, height: 720, image_size: "16:9" as const, resizeOnly: true },
+    ],
+  },
 ] as const;
 
 type PlatformId = (typeof PLATFORMS)[number]["id"];
 
-function getOutputSizes(selectedPlatformIds: PlatformId[]) {
-  const byRatio = new Map<
+type OutputEntry =
+  | { kind: "generate"; image_size: ImageSize; platforms: { name: string; width: number; height: number }[] }
+  | { kind: "resize"; width: number; height: number; platforms: { name: string; width: number; height: number }[] };
+
+function getOutputSizes(selectedPlatformIds: PlatformId[]): OutputEntry[] {
+  const generateByRatio = new Map<
     ImageSize,
     { image_size: ImageSize; platforms: { name: string; width: number; height: number }[] }
   >();
+  const resizeByKey = new Map<string, { width: number; height: number; platforms: { name: string; width: number; height: number }[] }>();
   for (const id of selectedPlatformIds) {
     const platform = PLATFORMS.find((p) => p.id === id);
     if (!platform) continue;
-    for (const { width, height, image_size } of platform.sizes) {
-      const existing = byRatio.get(image_size);
+    for (const size of platform.sizes) {
+      const { width, height, image_size } = size;
+      const resizeOnly = "resizeOnly" in size && size.resizeOnly;
       const entry = { name: platform.name, width, height };
-      if (existing) {
-        const isDup = existing.platforms.some((p) => p.name === entry.name && p.width === width && p.height === height);
-        if (!isDup) existing.platforms.push(entry);
+      if (resizeOnly) {
+        const key = `${width}-${height}`;
+        const existing = resizeByKey.get(key);
+        if (existing) {
+          const isDup = existing.platforms.some((p) => p.name === entry.name && p.width === width && p.height === height);
+          if (!isDup) existing.platforms.push(entry);
+        } else {
+          resizeByKey.set(key, { width, height, platforms: [entry] });
+        }
       } else {
-        byRatio.set(image_size, { image_size, platforms: [entry] });
+        const existing = generateByRatio.get(image_size);
+        if (existing) {
+          const isDup = existing.platforms.some((p) => p.name === entry.name && p.width === width && p.height === height);
+          if (!isDup) existing.platforms.push(entry);
+        } else {
+          generateByRatio.set(image_size, { image_size, platforms: [entry] });
+        }
       }
     }
   }
-  return Array.from(byRatio.values());
+  const generateList = Array.from(generateByRatio.values()).map((o) => ({ kind: "generate" as const, ...o }));
+  const resizeList = Array.from(resizeByKey.values()).map((o) => ({ kind: "resize" as const, ...o }));
+  return [...generateList, ...resizeList];
+}
+
+function getResultKey(entry: OutputEntry): string {
+  return entry.kind === "generate" ? entry.image_size : `resize-${entry.width}-${entry.height}`;
 }
 
 const ASPECT_CLASS: Record<ImageSize, string> = {
@@ -153,6 +186,7 @@ const ASPECT_CLASS: Record<ImageSize, string> = {
   "2:3": "aspect-[2/3]",
   "5:4": "aspect-[5/4]",
   "4:5": "aspect-[4/5]",
+  "5:7": "aspect-[5/7]",
   "21:9": "aspect-[21/9]",
 };
 
@@ -371,14 +405,20 @@ export default function ImageGeneratorPage() {
     setTaskState("generating");
     const initialResults: Record<string, string | null> = {};
     const initialProgress: Record<string, boolean> = {};
-    for (const { image_size } of outputSizes) {
-      initialResults[image_size] = null;
-      initialProgress[image_size] = false;
+    for (const entry of outputSizes) {
+      const key = getResultKey(entry);
+      initialResults[key] = null;
+      initialProgress[key] = false;
     }
-    setResults(initialResults);
+    setResults((prev) => {
+      Object.values(prev).forEach((url) => {
+        if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+      });
+      return initialResults;
+    });
     setProgress(initialProgress);
 
-    const runOne = async (image_size: ImageSize) => {
+    const runOne = async (image_size: ImageSize, resultKey: string) => {
       try {
         const res = await fetch("/api/generate-cover", {
           method: "POST",
@@ -393,7 +433,7 @@ export default function ImageGeneratorPage() {
         const taskId = data.taskId;
         const result = await pollTask(taskId);
         if (result.ok) {
-          setResults((prev) => ({ ...prev, [image_size]: result.url }));
+          setResults((prev) => ({ ...prev, [resultKey]: result.url }));
         } else {
           setDebugInfo((result.debug ?? null) as Record<string, unknown> | null);
           setError(result.errorMessage);
@@ -403,11 +443,37 @@ export default function ImageGeneratorPage() {
         setError(e instanceof Error ? e.message : "Generation error");
         setTaskState("error");
       } finally {
-        setProgress((prev) => ({ ...prev, [image_size]: true }));
+        setProgress((prev) => ({ ...prev, [resultKey]: true }));
       }
     };
 
-    await Promise.all(outputSizes.map(({ image_size }) => runOne(image_size)));
+    const runResize = async (entry: Extract<OutputEntry, { kind: "resize" }>) => {
+      const key = getResultKey(entry);
+      try {
+        const proxyUrl =
+          typeof window !== "undefined"
+            ? `${window.location.origin}/api/proxy-image?url=${encodeURIComponent(iconUrl)}`
+            : iconUrl;
+        const canvas = await loadImageAsCanvas(proxyUrl, entry.width, entry.height);
+        const blob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png", 0.95);
+        });
+        const url = URL.createObjectURL(blob);
+        setResults((prev) => ({ ...prev, [key]: url }));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Resize failed");
+        setTaskState("error");
+      } finally {
+        setProgress((prev) => ({ ...prev, [key]: true }));
+      }
+    };
+
+    const generateEntries = outputSizes.filter((e): e is Extract<OutputEntry, { kind: "generate" }> => e.kind === "generate");
+    const resizeEntries = outputSizes.filter((e): e is Extract<OutputEntry, { kind: "resize" }> => e.kind === "resize");
+    await Promise.all([
+      ...generateEntries.map((e) => runOne(e.image_size, getResultKey(e))),
+      ...resizeEntries.map((e) => runResize(e)),
+    ]);
     setTaskState((prev) => (prev === "error" ? "error" : "success"));
   };
 
@@ -512,8 +578,11 @@ export default function ImageGeneratorPage() {
               </div>
               {hasSelection && (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Will generate: {outputSizes.map((s) => s.image_size).join(", ")} —{" "}
-                  {outputSizes.flatMap((s) => s.platforms.map((p) => `${p.name} ${p.width}×${p.height}`)).join(", ")}
+                  Will generate:{" "}
+                  {outputSizes
+                    .map((s) => (s.kind === "generate" ? s.image_size : `resize ${s.width}×${s.height}`))
+                    .join(", ")}{" "}
+                  — {outputSizes.flatMap((s) => s.platforms.map((p) => `${p.name} ${p.width}×${p.height}`)).join(", ")}
                 </p>
               )}
             </div>
@@ -613,18 +682,24 @@ export default function ImageGeneratorPage() {
       )}
 
       {sourceType === "cover" &&
-        (outputSizes.some((s) => results[s.image_size] || progress[s.image_size]) || taskState === "generating") && (
+        (outputSizes.some((s) => results[getResultKey(s)] || progress[getResultKey(s)]) || taskState === "generating") && (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {outputSizes.map(({ image_size, platforms }) => {
-            const resultUrl = results[image_size];
-            const done = progress[image_size];
-            const label = `${image_size} — ${platforms.map((p) => `${p.name} ${p.width}×${p.height}`).join(", ")}`;
+          {outputSizes.map((entry) => {
+            const key = getResultKey(entry);
+            const resultUrl = results[key];
+            const done = progress[key];
+            const isResize = entry.kind === "resize";
+            const title = isResize ? `Resize ${entry.width}×${entry.height}` : entry.image_size;
+            const aspectClass = isResize ? "aspect-video" : ASPECT_CLASS[entry.image_size];
+            const imgW = isResize ? 640 : entry.kind === "generate" && (entry.image_size === "9:16" || entry.image_size === "2:3" || entry.image_size === "3:4" || entry.image_size === "4:5") ? 360 : 640;
+            const imgH = isResize ? 360 : entry.kind === "generate" && entry.image_size === "9:16" ? 640 : entry.kind === "generate" && (entry.image_size === "16:9" || entry.image_size === "21:9") ? 360 : 480;
+            const label = `${title} — ${entry.platforms.map((p) => `${p.name} ${p.width}×${p.height}`).join(", ")}`;
             return (
-              <Card key={image_size} className="border-border bg-card overflow-hidden">
+              <Card key={key} className="border-border bg-card overflow-hidden">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">{image_size}</CardTitle>
+                  <CardTitle className="text-base">{title}</CardTitle>
                   <CardDescription className="text-xs">
-                    {platforms.map((p) => `${p.name}: ${p.width}×${p.height}`).join(" · ")}
+                    {entry.platforms.map((p) => `${p.name}: ${p.width}×${p.height}`).join(" · ")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -634,13 +709,13 @@ export default function ImageGeneratorPage() {
                         href={resultUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={`block relative rounded-lg border border-border overflow-hidden bg-muted ${ASPECT_CLASS[image_size]}`}
+                        className={`block relative rounded-lg border border-border overflow-hidden bg-muted ${aspectClass}`}
                       >
                         <Image
                           src={resultUrl}
                           alt={label}
-                          width={image_size === "9:16" || image_size === "2:3" || image_size === "3:4" || image_size === "4:5" ? 360 : 640}
-                          height={image_size === "9:16" ? 640 : image_size === "16:9" || image_size === "21:9" ? 360 : 480}
+                          width={imgW}
+                          height={imgH}
                           className="object-cover w-full h-full"
                           unoptimized
                         />
@@ -656,7 +731,7 @@ export default function ImageGeneratorPage() {
                           <Download className="h-4 w-4" />
                           Download as-is
                         </a>
-                        {platforms.map((p) => (
+                        {entry.platforms.map((p) => (
                           <Button
                             key={`${p.name}-${p.width}-${p.height}`}
                             type="button"
@@ -676,7 +751,7 @@ export default function ImageGeneratorPage() {
                   ) : (
                     <div className="flex items-center gap-2 text-muted-foreground py-8">
                       <Loader2 className="h-5 w-5 animate-spin" />
-                      <span className="text-sm">Generating…</span>
+                      <span className="text-sm">{isResize ? "Resizing…" : "Generating…"}</span>
                     </div>
                   )}
                 </CardContent>

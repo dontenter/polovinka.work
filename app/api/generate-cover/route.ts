@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 const NANOBANANA_BASE = "https://api.nanobananaapi.ai/api/v1/nanobanana";
 const COVER_PROMPT =
-  "A clean, highly polished re-rendering of the browser game cover from the source image. Strictly maintain the original simple art style, characters, and composition. Enhance the visual clarity with vibrant, saturated colors, smooth textures. Crisp graphics, professional mobile game art standard.";
+  "A clean, highly polished re-rendering of the browser game cover from the source image. Strictly maintain the original simple art style, characters, and composition. Enhance the visual clarity with vibrant, saturated colors, smooth textures. Crisp graphics, professional mobile game art standard. Never crop or cut off the game title or any text — keep all text and key elements fully visible. When the target aspect ratio needs more space (e.g. vertical 9:16), extend the scene by generating coherent new content above and below (sky, background, floor) in the same style; no blur, no soft edges, no padding — fill the full frame with sharp, consistent artwork.";
 
-const IMAGE_SIZES = ["1:1", "9:16", "16:9", "3:4", "4:3", "3:2", "2:3", "5:4", "4:5", "21:9"] as const;
+const IMAGE_SIZES = ["1:1", "9:16", "16:9", "3:4", "4:3", "3:2", "2:3", "5:4", "4:5", "5:7", "21:9"] as const;
 export type ImageSize = (typeof IMAGE_SIZES)[number];
 
 export async function POST(request: NextRequest) {
