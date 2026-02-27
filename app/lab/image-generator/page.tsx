@@ -502,10 +502,11 @@ export default function ImageGeneratorPage() {
         blob = await compressImageBlobToMaxKb(pngBlob, maxSizeKb);
         filename = `icon-${size}x${size}.jpg`;
       } else {
-        blob = await new Promise<Blob | null>((resolve) => {
+        const result = await new Promise<Blob | null>((resolve) => {
           canvas.toBlob((b) => resolve(b), "image/png", 0.95);
         });
-        if (!blob) return;
+        if (!result) return;
+        blob = result;
         filename = `icon-${size}x${size}.png`;
       }
       const url = URL.createObjectURL(blob);
