@@ -102,6 +102,35 @@ async function getCenterCroppedBlob(
   });
 }
 
+/** Compress image blob to JPEG under maxSizeKb (for store requirements like Xiaomi ≤200KB). */
+async function compressImageBlobToMaxKb(blob: Blob, maxSizeKb: number): Promise<Blob> {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new window.Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = URL.createObjectURL(blob);
+  });
+  URL.revokeObjectURL(img.src);
+  const canvas = document.createElement("canvas");
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2d not available");
+  ctx.drawImage(img, 0, 0);
+  let quality = 0.9;
+  while (quality >= 0.05) {
+    const result = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((b) => resolve(b), "image/jpeg", quality);
+    });
+    if (result && result.size <= maxSizeKb * 1024) return result;
+    quality -= 0.1;
+  }
+  const fallback = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob((b) => resolve(b), "image/jpeg", 0.05);
+  });
+  return fallback ?? blob;
+}
+
 type ImageSize =
   | "1:1"
   | "9:16"
@@ -132,6 +161,7 @@ const PLATFORMS = [
     sizes: [
       { width: 1280, height: 720, image_size: "16:9" as const },
       { width: 720, height: 1280, image_size: "9:16" as const },
+      { width: 720, height: 1080, image_size: "2:3" as const },
       { width: 1920, height: 1080, image_size: "16:9" as const },
       { width: 617, height: 500, image_size: "5:4" as const },
     ],
@@ -155,7 +185,7 @@ const PLATFORMS = [
   {
     id: "xiaomi",
     name: "Xiaomi",
-    sizes: [{ width: 1110, height: 684, image_size: "3:2" as const }],
+    sizes: [{ width: 1110, height: 684, image_size: "3:2" as const, maxSizeKb: 200 }],
   },
   {
     id: "youtube",
@@ -169,23 +199,25 @@ const PLATFORMS = [
 
 type PlatformId = (typeof PLATFORMS)[number]["id"];
 
+type PlatformSize = { name: string; width: number; height: number; maxSizeKb?: number };
+
 type OutputEntry =
-  | { kind: "generate"; image_size: ImageSize; platforms: { name: string; width: number; height: number }[] }
-  | { kind: "resize"; width: number; height: number; platforms: { name: string; width: number; height: number }[] }
+  | { kind: "generate"; image_size: ImageSize; platforms: PlatformSize[] }
+  | { kind: "resize"; width: number; height: number; platforms: PlatformSize[] }
   | {
       kind: "deriveFrom";
       sourceImageSize: ImageSize;
       width: number;
       height: number;
-      platforms: { name: string; width: number; height: number }[];
+      platforms: PlatformSize[];
     };
 
 function getOutputSizes(selectedPlatformIds: PlatformId[]): OutputEntry[] {
   const generateByRatio = new Map<
     ImageSize,
-    { image_size: ImageSize; platforms: { name: string; width: number; height: number }[] }
+    { image_size: ImageSize; platforms: PlatformSize[] }
   >();
-  const resizeByKey = new Map<string, { width: number; height: number; platforms: { name: string; width: number; height: number }[] }>();
+  const resizeByKey = new Map<string, { width: number; height: number; platforms: PlatformSize[] }>();
   const deriveList: OutputEntry[] = [];
   for (const id of selectedPlatformIds) {
     const platform = PLATFORMS.find((p) => p.id === id);
@@ -194,7 +226,12 @@ function getOutputSizes(selectedPlatformIds: PlatformId[]): OutputEntry[] {
       const { width, height, image_size } = size;
       const resizeOnly = "resizeOnly" in size && size.resizeOnly;
       const deriveFrom = "deriveFrom" in size && size.deriveFrom;
-      const entry = { name: platform.name, width, height };
+      const entry: PlatformSize = {
+        name: platform.name,
+        width,
+        height,
+        ...("maxSizeKb" in size && typeof size.maxSizeKb === "number" && { maxSizeKb: size.maxSizeKb }),
+      };
       if (deriveFrom) {
         deriveList.push({
           kind: "deriveFrom",
@@ -273,6 +310,7 @@ export default function ImageGeneratorPage() {
     targetWidth: number;
     targetHeight: number;
     label: string;
+    maxSizeKb?: number;
   } | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -304,7 +342,13 @@ export default function ImageGeneratorPage() {
     cropAreaRef.current = croppedAreaPixels;
   }, []);
 
-  const openCropModal = (imageUrl: string, width: number, height: number, label: string) => {
+  const openCropModal = (
+    imageUrl: string,
+    width: number,
+    height: number,
+    label: string,
+    maxSizeKb?: number
+  ) => {
     setCrop({ x: 0, y: 0 });
     setZoom(1);
     cropAreaRef.current = null;
@@ -312,8 +356,38 @@ export default function ImageGeneratorPage() {
       typeof window !== "undefined"
         ? `${window.location.origin}/api/proxy-image?url=${encodeURIComponent(imageUrl)}`
         : imageUrl;
-    setCropModal({ imageUrl: proxyUrl, targetWidth: width, targetHeight: height, label });
+    setCropModal({ imageUrl: proxyUrl, targetWidth: width, targetHeight: height, label, maxSizeKb });
   };
+
+  const handleDownloadCompressed = useCallback(
+    async (
+      imageUrl: string,
+      width: number,
+      height: number,
+      maxSizeKb: number,
+      label: string
+    ) => {
+      try {
+        const proxyUrl =
+          typeof window !== "undefined" && !imageUrl.startsWith("blob:")
+            ? `${window.location.origin}/api/proxy-image?url=${encodeURIComponent(imageUrl)}`
+            : imageUrl;
+        const blob = await getCenterCroppedBlob(proxyUrl, width, height);
+        const compressed = await compressImageBlobToMaxKb(blob, maxSizeKb);
+        const url = URL.createObjectURL(compressed);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `cover-${width}x${height}-${label.replace(/\s+/g, "-")}-max${maxSizeKb}kb.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.error("[Image Generator] Compressed download failed:", e);
+      }
+    },
+    []
+  );
 
   const handleCropDownload = useCallback(async () => {
     if (!cropModal) return;
@@ -323,16 +397,21 @@ export default function ImageGeneratorPage() {
       return;
     }
     try {
-      const blob = await getCroppedImageBlob(
+      let blob = await getCroppedImageBlob(
         cropModal.imageUrl,
         area,
         cropModal.targetWidth,
         cropModal.targetHeight
       );
+      const useJpeg = cropModal.maxSizeKb != null;
+      if (useJpeg && cropModal.maxSizeKb != null) {
+        blob = await compressImageBlobToMaxKb(blob, cropModal.maxSizeKb);
+      }
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `cover-${cropModal.targetWidth}x${cropModal.targetHeight}-${cropModal.label.replace(/\s+/g, "-")}.png`;
+      const ext = useJpeg ? "jpg" : "png";
+      a.download = `cover-${cropModal.targetWidth}x${cropModal.targetHeight}-${cropModal.label.replace(/\s+/g, "-")}.${ext}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -411,17 +490,32 @@ export default function ImageGeneratorPage() {
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
       ctx.drawImage(img, 0, 0, size, size);
-      canvas.toBlob((blob) => {
+
+      const maxSizeKb = size === 300 ? 50 : undefined;
+      let blob: Blob;
+      let filename: string;
+      if (maxSizeKb != null) {
+        const pngBlob = await new Promise<Blob | null>((resolve) => {
+          canvas.toBlob((b) => resolve(b), "image/png", 0.95);
+        });
+        if (!pngBlob) return;
+        blob = await compressImageBlobToMaxKb(pngBlob, maxSizeKb);
+        filename = `icon-${size}x${size}.jpg`;
+      } else {
+        blob = await new Promise<Blob | null>((resolve) => {
+          canvas.toBlob((b) => resolve(b), "image/png", 0.95);
+        });
         if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `icon-${size}x${size}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, "image/png", 0.95);
+        filename = `icon-${size}x${size}.png`;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (e) {
       console.error("[Image Generator] Download icon size failed:", e);
     }
@@ -841,17 +935,46 @@ export default function ImageGeneratorPage() {
                           Download as-is
                         </a>
                         {entry.platforms.map((p) => (
-                          <Button
-                            key={`${p.name}-${p.width}-${p.height}`}
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="text-xs"
-                            onClick={() => openCropModal(resultUrl, p.width, p.height, `${p.name}-${p.width}x${p.height}`)}
-                          >
-                            <Crop className="h-3.5 w-3.5 mr-1.5" />
-                            {p.name} {p.width}×{p.height}
-                          </Button>
+                          <span key={`${p.name}-${p.width}-${p.height}`} className="inline-flex gap-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                              onClick={() =>
+                                openCropModal(
+                                  resultUrl,
+                                  p.width,
+                                  p.height,
+                                  `${p.name}-${p.width}x${p.height}`,
+                                  p.maxSizeKb
+                                )
+                              }
+                            >
+                              <Crop className="h-3.5 w-3.5 mr-1.5" />
+                              {p.name} {p.width}×{p.height}
+                            </Button>
+                            {p.maxSizeKb != null && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="text-xs"
+                                onClick={() =>
+                                  handleDownloadCompressed(
+                                    resultUrl,
+                                    p.width,
+                                    p.height,
+                                    p.maxSizeKb!,
+                                    `${p.name}-${p.width}x${p.height}`
+                                  )
+                                }
+                              >
+                                <Download className="h-3.5 w-3.5 mr-1.5" />
+                                ≤{p.maxSizeKb}KB
+                              </Button>
+                            )}
+                          </span>
                         ))}
                       </div>
                     </div>
