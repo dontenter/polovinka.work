@@ -695,7 +695,7 @@ export default function ImageGeneratorPage() {
         <CardHeader>
           <CardTitle className="text-lg">Source</CardTitle>
           <CardDescription>
-            Image URL. 16:9 cover for platform generation or icon for square resize.
+            Image URL. 16:9 cover for platform generation or icon for square resize. Max 5MB.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -935,48 +935,43 @@ export default function ImageGeneratorPage() {
                           <Download className="h-4 w-4" />
                           Download as-is
                         </a>
-                        {entry.platforms.map((p) => (
-                          <span key={`${p.name}-${p.width}-${p.height}`} className="inline-flex gap-1">
+                        {entry.platforms.map((p) =>
+                          p.maxSizeKb != null ? (
                             <Button
+                              key={`${p.name}-${p.width}-${p.height}`}
                               type="button"
                               variant="outline"
                               size="sm"
                               className="text-xs"
                               onClick={() =>
-                                openCropModal(
+                                handleDownloadCompressed(
                                   resultUrl,
                                   p.width,
                                   p.height,
-                                  `${p.name}-${p.width}x${p.height}`,
-                                  p.maxSizeKb
+                                  p.maxSizeKb!,
+                                  `${p.name}-${p.width}x${p.height}`
                                 )
+                              }
+                            >
+                              <Download className="h-3.5 w-3.5 mr-1.5" />
+                              {p.name} {p.width}×{p.height} (≤{p.maxSizeKb}KB)
+                            </Button>
+                          ) : (
+                            <Button
+                              key={`${p.name}-${p.width}-${p.height}`}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                              onClick={() =>
+                                openCropModal(resultUrl, p.width, p.height, `${p.name}-${p.width}x${p.height}`)
                               }
                             >
                               <Crop className="h-3.5 w-3.5 mr-1.5" />
                               {p.name} {p.width}×{p.height}
                             </Button>
-                            {p.maxSizeKb != null && (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="text-xs"
-                                onClick={() =>
-                                  handleDownloadCompressed(
-                                    resultUrl,
-                                    p.width,
-                                    p.height,
-                                    p.maxSizeKb!,
-                                    `${p.name}-${p.width}x${p.height}`
-                                  )
-                                }
-                              >
-                                <Download className="h-3.5 w-3.5 mr-1.5" />
-                                ≤{p.maxSizeKb}KB
-                              </Button>
-                            )}
-                          </span>
-                        ))}
+                          )
+                        )}
                       </div>
                     </div>
                   ) : done && error ? (

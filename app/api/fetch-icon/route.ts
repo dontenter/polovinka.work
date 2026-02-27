@@ -10,7 +10,7 @@ const ALLOWED_TYPES = [
   "image/avif",
   "image/svg+xml",
 ];
-const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
 /** Formats that Gemini/Nano Banana may not accept as reference; we convert these to JPEG. */
 const CONVERT_TO_JPEG = ["image/avif", "image/webp", "image/svg+xml"];
