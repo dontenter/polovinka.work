@@ -1559,7 +1559,7 @@ export default function GameTestingPage() {
                         />
                         <div className="flex items-center gap-2">
                           <span className="text-purple-500">{feature.icon}</span>
-                          <span className="font-medium">{feature.name}</span>
+                          <span className="text-sm font-medium">{feature.name}</span>
                         </div>
                       </label>
                       {feature.applicable && (
