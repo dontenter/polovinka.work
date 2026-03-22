@@ -472,7 +472,9 @@ export default function GameTestingPage() {
     }
   };
 
-  const handleSave = () => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
     if (!gameName.trim()) {
       alert("Введите название игры");
       return;
@@ -497,11 +499,21 @@ export default function GameTestingPage() {
       hasFailedBasicChecks,
     };
 
-    saveGameTestResult(result);
-    setToast({ message: "Results saved successfully!", type: "success" });
-    setTimeout(() => {
-      router.push("/lab/game-testing/history");
-    }, 1000);
+    try {
+      setIsSaving(true);
+      await saveGameTestResult(result);
+      setToast({ message: "Results saved successfully!", type: "success" });
+      setTimeout(() => {
+        router.push("/lab/game-testing/history");
+      }, 1000);
+    } catch (error) {
+      setToast({
+        message: error instanceof Error ? error.message : "Failed to save results",
+        type: "error",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const hasFailedBasicChecks = useMemo(() => {
@@ -933,9 +945,18 @@ export default function GameTestingPage() {
               Create Report
             </Button>
           )}
-          <Button onClick={handleSave}>
-            <Save className="h-4 w-4 mr-2" />
-            Save Results
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save Results
+              </>
+            )}
           </Button>
         </div>
       </div>

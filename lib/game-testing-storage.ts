@@ -1,4 +1,4 @@
-// Storage utility for game testing results
+// Storage utility for game testing results - now using Vercel Blob via API
 
 export type GameTestResult = {
   id: string;
@@ -31,29 +31,60 @@ export type GameTestResult = {
   hasFailedBasicChecks: boolean;
 };
 
-const STORAGE_KEY = "game-testing-results";
+export async function saveGameTestResult(
+  result: GameTestResult
+): Promise<void> {
+  const response = await fetch("/api/game-testing", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(result),
+  });
 
-export function saveGameTestResult(result: GameTestResult): void {
-  const existing = getAllGameTestResults();
-  const updated = [result, ...existing];
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to save result");
+  }
 }
 
-export function getAllGameTestResults(): GameTestResult[] {
-  if (typeof window === "undefined") return [];
-  const data = localStorage.getItem(STORAGE_KEY);
-  return data ? JSON.parse(data) : [];
+export async function getAllGameTestResults(): Promise<GameTestResult[]> {
+  const response = await fetch("/api/game-testing");
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to fetch results");
+  }
+
+  const data = await response.json();
+  return data.results || [];
 }
 
-export function getGameTestResultById(id: string): GameTestResult | null {
-  const results = getAllGameTestResults();
-  return results.find((r) => r.id === id) || null;
+export async function getGameTestResultById(
+  id: string
+): Promise<GameTestResult | null> {
+  const response = await fetch(`/api/game-testing/${id}`);
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      return null;
+    }
+    const error = await response.json();
+    throw new Error(error.error || "Failed to fetch result");
+  }
+
+  return await response.json();
 }
 
-export function deleteGameTestResult(id: string): void {
-  const existing = getAllGameTestResults();
-  const filtered = existing.filter((r) => r.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+export async function deleteGameTestResult(id: string): Promise<void> {
+  const response = await fetch(`/api/game-testing/${id}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to delete result");
+  }
 }
 
 export function generateId(): string {

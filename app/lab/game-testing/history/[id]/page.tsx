@@ -15,6 +15,7 @@ import {
   Users,
   ShoppingCart,
   Share2,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -97,20 +98,54 @@ export default function GameTestResultPage() {
   const params = useParams();
   const [result, setResult] = useState<GameTestResult | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const id = params.id as string;
-    if (id) {
-      const data = getGameTestResultById(id);
-      setResult(data);
-      setLoading(false);
+    async function loadResult() {
+      const id = params.id as string;
+      if (id) {
+        try {
+          setLoading(true);
+          setError(null);
+          const data = await getGameTestResultById(id);
+          setResult(data);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Failed to load result");
+        } finally {
+          setLoading(false);
+        }
+      }
     }
+
+    loadResult();
   }, [params.id]);
 
   if (loading) {
     return (
       <div className="container max-w-5xl mx-auto px-4 py-12">
-        <p className="text-center text-muted-foreground">Loading...</p>
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+          <p className="mt-4 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container max-w-5xl mx-auto px-4 py-12">
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        <div className="mt-4">
+          <Link href="/lab/game-testing/history">
+            <Button variant="outline">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to History
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }

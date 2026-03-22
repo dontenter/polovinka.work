@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Gamepad2, ArrowLeft, Search, Calendar, Trash2, Eye } from "lucide-react";
+import { Gamepad2, ArrowLeft, Search, Calendar, Trash2, Eye, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,9 +37,25 @@ export default function GameTestingHistoryPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState<GameTestResult[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    setResults(getAllGameTestResults());
+    async function loadResults() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await getAllGameTestResults();
+        setResults(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load results");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadResults();
   }, []);
 
   const filteredResults = useMemo(() => {
@@ -50,10 +66,17 @@ export default function GameTestingHistoryPage() {
     );
   }, [results, searchQuery]);
 
-  const handleDelete = (id: string) => {
-    if (confirm("Delete this record?")) {
-      deleteGameTestResult(id);
-      setResults(getAllGameTestResults());
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this record?")) return;
+
+    try {
+      setDeletingId(id);
+      await deleteGameTestResult(id);
+      setResults((prev) => prev.filter((r) => r.id !== id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete result");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -93,13 +116,40 @@ export default function GameTestingHistoryPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
+              disabled={isLoading}
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Results List */}
-      {filteredResults.length === 0 ? (
+      {/* Loading State */}
+      {isLoading && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+            <p className="mt-4 text-muted-foreground">Loading results...</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Error State */}
+      {error && !isLoading && (
+        <Card className="border-red-200">
+          <CardContent className="py-12 text-center">
+            <p className="text-red-600">Error: {error}</p>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => window.location.reload()}
+            >
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Empty State */}
+      {!isLoading && !error && filteredResults.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">
@@ -114,10 +164,14 @@ export default function GameTestingHistoryPage() {
             </Button>
           </CardContent>
         </Card>
-      ) : (
+      )}
+
+      {/* Results List */}
+      {!isLoading && !error && filteredResults.length > 0 && (
         <div className="space-y-4">
           {filteredResults.map((result) => {
             const ratingBadge = getRatingBadge(result.ratingScore);
+            const isDeleting = deletingId === result.id;
             return (
               <Card
                 key={result.id}
@@ -158,12 +212,17 @@ export default function GameTestingHistoryPage() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        disabled={isDeleting}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDelete(result.id);
                         }}
                       >
-                        <Trash2 className="h-4 w-4 text-red-500" />
+                        {isDeleting ? (
+                          <Loader2 className="h-4 w-4 text-red-500 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        )}
                       </Button>
                     </div>
                   </div>
