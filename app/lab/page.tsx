@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, ImageIcon, Wrench, LogOut } from "lucide-react";
+import { Gamepad2, ImageIcon, Wrench, LogOut } from "lucide-react";
 
 const comingSoonTools = [
   {
-    title: "AI Chat",
-    description: "Interface for conversational AI — chat with models, compare responses, export threads.",
-    icon: MessageSquare,
-    href: null as string | null,
+    title: "Game Testing",
+    description: "Game rating and feedback system for developers",
+    icon: Gamepad2,
+    href: "/lab/game-testing",
   },
   {
     title: "Image Generator",
@@ -71,12 +71,9 @@ export default function LabPage() {
                   {description}
                 </CardDescription>
                 {href ? (
-                  <Link
-                    href={href}
-                    className="mt-3 inline-block text-xs font-medium uppercase tracking-wider text-accent hover:underline"
-                  >
+                  <p className="mt-3 text-xs font-medium uppercase tracking-wider text-accent">
                     Open →
-                  </Link>
+                  </p>
                 ) : (
                   <p className="mt-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">
                     Coming soon
