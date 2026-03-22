@@ -21,6 +21,7 @@ import {
   Sparkles,
   Loader2,
   History,
+  Plus,
   ChevronDown,
   ChevronUp,
   MessageSquare,
@@ -860,66 +861,75 @@ export default function GameTestingPage() {
     }
   }, [detailedAnswers]);
 
+  // Reset all state for a new game (no confirmation)
+  const resetState = () => {
+    setGameName("");
+    setBasicChecks({});
+    setFeatures([
+      {
+        id: "multiplayer",
+        name: "Мультиплеер",
+        icon: <Users className="h-4 w-4" />,
+        applicable: false,
+        items: FEATURE_CHECK_ITEMS.multiplayer.map((item) => ({
+          id: item.id,
+          label: item.label,
+        })),
+        itemStates: {},
+      },
+      {
+        id: "leaderboards",
+        name: "Лидерборды",
+        icon: <Trophy className="h-4 w-4" />,
+        applicable: false,
+        items: FEATURE_CHECK_ITEMS.leaderboards.map((item) => ({
+          id: item.id,
+          label: item.label,
+        })),
+        itemStates: {},
+      },
+      {
+        id: "iap",
+        name: "Ин-апы",
+        icon: <ShoppingCart className="h-4 w-4" />,
+        applicable: false,
+        items: FEATURE_CHECK_ITEMS.iap.map((item) => ({
+          id: item.id,
+          label: item.label,
+        })),
+        itemStates: {},
+      },
+      {
+        id: "social",
+        name: "Социальный шеринг",
+        icon: <Share2 className="h-4 w-4" />,
+        applicable: false,
+        items: FEATURE_CHECK_ITEMS.social.map((item) => ({
+          id: item.id,
+          label: item.label,
+        })),
+        itemStates: {},
+      },
+    ]);
+    setRatingCriteria(RATING_CRITERIA);
+    setShowRating(false);
+    setDetailedAnswers({});
+    setGeneratedDescription("");
+  };
+
   const handleReset = () => {
     if (confirm("Сбросить все результаты проверки?")) {
-      setGameName("");
-      setBasicChecks({});
-      setFeatures([
-        {
-          id: "multiplayer",
-          name: "Мультиплеер",
-          icon: <Users className="h-4 w-4" />,
-          applicable: false,
-          items: FEATURE_CHECK_ITEMS.multiplayer.map((item) => ({
-            id: item.id,
-            label: item.label,
-          })),
-          itemStates: {},
-        },
-        {
-          id: "leaderboards",
-          name: "Лидерборды",
-          icon: <Trophy className="h-4 w-4" />,
-          applicable: false,
-          items: FEATURE_CHECK_ITEMS.leaderboards.map((item) => ({
-            id: item.id,
-            label: item.label,
-          })),
-          itemStates: {},
-        },
-        {
-          id: "iap",
-          name: "Ин-апы",
-          icon: <ShoppingCart className="h-4 w-4" />,
-          applicable: false,
-          items: FEATURE_CHECK_ITEMS.iap.map((item) => ({
-            id: item.id,
-            label: item.label,
-          })),
-          itemStates: {},
-        },
-        {
-          id: "social",
-          name: "Социальный шеринг",
-          icon: <Share2 className="h-4 w-4" />,
-          applicable: false,
-          items: FEATURE_CHECK_ITEMS.social.map((item) => ({
-            id: item.id,
-            label: item.label,
-          })),
-          itemStates: {},
-        },
-      ]);
-      setRatingCriteria(RATING_CRITERIA);
-      setShowRating(false);
-      setDetailedAnswers({});
-      setGeneratedDescription("");
+      resetState();
     }
+  };
+
+  const handleNewGame = () => {
+    resetState();
   };
 
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = async (nameOverride?: string, shouldRedirect: boolean = false) => {
+  const handleSave = async (nameOverride?: string) => {
     const nameToUse = nameOverride || gameName;
     if (!nameToUse.trim()) {
       setPendingAction("save");
@@ -977,11 +987,6 @@ export default function GameTestingPage() {
       setIsSaving(true);
       await saveGameTestResult(result);
       setToast({ message: "Results saved successfully!", type: "success" });
-      if (shouldRedirect) {
-        setTimeout(() => {
-          router.push("/lab/game-testing/history");
-        }, 1000);
-      }
     } catch (error) {
       setToast({
         message: error instanceof Error ? error.message : "Failed to save results",
@@ -1179,24 +1184,44 @@ export default function GameTestingPage() {
               rate the game.
             </p>
           </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="default"
+              onClick={handleNewGame}
+              className="hidden sm:flex"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Game
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/lab/game-testing/history")}
+              className="hidden sm:flex"
+            >
+              <History className="h-4 w-4 mr-2" />
+              History
+            </Button>
+          </div>
+        </div>
+        {/* Mobile Buttons */}
+        <div className="mt-4 sm:hidden flex flex-col gap-2">
+          <Button
+            variant="default"
+            onClick={handleNewGame}
+            className="w-full"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Game
+          </Button>
           <Button
             variant="outline"
             onClick={() => router.push("/lab/game-testing/history")}
-            className="hidden sm:flex"
+            className="w-full"
           >
             <History className="h-4 w-4 mr-2" />
             History
           </Button>
         </div>
-        {/* Mobile History Button */}
-        <Button
-          variant="outline"
-          onClick={() => router.push("/lab/game-testing/history")}
-          className="mt-4 sm:hidden w-full"
-        >
-          <History className="h-4 w-4 mr-2" />
-          History
-        </Button>
       </div>
 
       {/* Game Name Input - Compact */}
@@ -1385,12 +1410,14 @@ export default function GameTestingPage() {
                   <Button
                     variant="outline"
                     className="w-full"
-                    onClick={() => {
+                    onClick={async () => {
                       if (!gameName.trim()) {
                         setPendingAction("rating");
                         setShowNameModal(true);
                         return;
                       }
+                      // Save before showing rating
+                      await handleSave();
                       setShowRating(true);
                     }}
                   >
@@ -1541,12 +1568,14 @@ export default function GameTestingPage() {
           {(hasFailedBasicChecks || hasFailedFeatureChecks) && (
             <Button
               variant="secondary"
-              onClick={() => {
+              onClick={async () => {
                 if (!gameName.trim()) {
                   setPendingAction("feedback");
                   setShowNameModal(true);
                   return;
                 }
+                // Save before showing feedback
+                await handleSave();
                 setShowFeedbackModal(true);
               }}
               className="gap-2"
@@ -1559,7 +1588,7 @@ export default function GameTestingPage() {
             </Button>
           )}
 
-          <Button onClick={() => handleSave(undefined, true)} disabled={isSaving}>
+          <Button onClick={() => handleSave()} disabled={isSaving}>
             {isSaving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -1594,8 +1623,7 @@ export default function GameTestingPage() {
           setGameName(name);
           setShowNameModal(false);
           // Save the result first (pass name directly as state update is async)
-          // shouldRedirect=true only for "save" action
-          await handleSave(name, pendingAction === "save");
+          await handleSave(name);
           // Execute pending action
           if (pendingAction === "rating") {
             setShowRating(true);
@@ -1604,7 +1632,7 @@ export default function GameTestingPage() {
             setShowFeedbackModal(true);
             setToast({ message: "Результаты сохранены", type: "success" });
           } else if (pendingAction === "save") {
-            // Save Results: already redirecting in handleSave
+            // Save Results: just show toast, no redirect
             setToast({ message: "Результаты сохранены", type: "success" });
           }
           setPendingAction(null);
