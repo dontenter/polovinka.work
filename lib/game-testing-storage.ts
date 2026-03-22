@@ -49,8 +49,14 @@ export async function saveGameTestResult(
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to save result");
+    let errorMessage = "Failed to save result";
+    try {
+      const error = await response.json();
+      errorMessage = error.error || error.details || JSON.stringify(error);
+    } catch (e) {
+      errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    }
+    throw new Error(errorMessage);
   }
 }
 

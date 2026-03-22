@@ -8,12 +8,13 @@ export type GameTestResult = {
   id: string;
   gameName: string;
   date: string;
-  basicChecks: Record<string, boolean>;
+  basicChecks: Record<string, boolean | undefined>;
   features: {
     id: string;
     name: string;
     applicable: boolean;
     checkedItems: string[];
+    failedItems?: Record<string, number[]>;
   }[];
   ratingCriteria: {
     id: string;
@@ -26,6 +27,8 @@ export type GameTestResult = {
   detailedAnswers: Record<string, string>;
   generatedDescription?: string;
   hasFailedBasicChecks: boolean;
+  basicCheckIssues?: Record<string, number[]>;
+  feedbackText?: string;
 };
 
 // POST - Save a new result
@@ -34,6 +37,7 @@ export async function POST(request: NextRequest) {
     const result: GameTestResult = await request.json();
 
     if (!result.id || !result.gameName) {
+      console.error("Missing required fields:", { id: result.id, gameName: result.gameName });
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -44,13 +48,14 @@ export async function POST(request: NextRequest) {
     const blob = await put(blobPath, JSON.stringify(result), {
       access: "public",
       contentType: "application/json",
+      allowOverwrite: true,
     });
 
     return NextResponse.json({ success: true, blob });
   } catch (error) {
     console.error("Error saving game test result:", error);
     return NextResponse.json(
-      { error: "Failed to save result" },
+      { error: "Failed to save result", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

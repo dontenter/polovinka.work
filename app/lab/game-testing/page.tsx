@@ -838,6 +838,9 @@ export default function GameTestingPage() {
   // Game name state
   const [gameName, setGameName] = useState("");
 
+  // Current result ID (for updating existing record)
+  const [currentResultId, setCurrentResultId] = useState<string | null>(null);
+
   // Basic checks state with issues
   const [basicChecks, setBasicChecks] = useState<Record<string, CheckState>>({});
 
@@ -1091,6 +1094,7 @@ export default function GameTestingPage() {
   // Reset all state for a new game (no confirmation)
   const resetState = () => {
     setGameName("");
+    setCurrentResultId(null);
     setBasicChecks({});
     setFeatures([
       {
@@ -1164,8 +1168,11 @@ export default function GameTestingPage() {
       return;
     }
 
+    // Use existing ID or generate new one
+    const resultId = currentResultId || generateId();
+    
     const result: GameTestResult = {
-      id: generateId(),
+      id: resultId,
       gameName: nameToUse.trim(),
       date: new Date().toISOString(),
       basicChecks: Object.entries(basicChecks).reduce(
@@ -1213,9 +1220,13 @@ export default function GameTestingPage() {
 
     try {
       setIsSaving(true);
+      console.log("Saving result:", { resultId, result });
       await saveGameTestResult(result);
+      setCurrentResultId(resultId);
+      console.log("Saved successfully with ID:", resultId);
       setToast({ message: "Results saved successfully!", type: "success" });
     } catch (error) {
+      console.error("Save error:", error);
       setToast({
         message: error instanceof Error ? error.message : "Failed to save results",
         type: "error",
