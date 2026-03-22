@@ -511,13 +511,23 @@ function FeedbackModal({
       const data = await response.json();
 
       if (!response.ok) {
+        // If API key not configured, fallback to regenerating base feedback
+        if (data.error?.includes("API key not configured")) {
+          const newFeedback = generateFeedback(selectedIssues, failedChecks, newLanguage);
+          setFeedbackText(newFeedback);
+          setLanguage(newLanguage);
+          return;
+        }
         throw new Error(data.error || "Failed to translate");
       }
 
       setFeedbackText(data.translatedText);
       setLanguage(newLanguage);
     } catch (error) {
-      alert("Error translating feedback: " + (error as Error).message);
+      // Fallback: regenerate base feedback on error
+      const newFeedback = generateFeedback(selectedIssues, failedChecks, newLanguage);
+      setFeedbackText(newFeedback);
+      setLanguage(newLanguage);
     } finally {
       setIsTranslating(false);
     }
@@ -541,54 +551,80 @@ function FeedbackModal({
 
       // Process additional bugs
       if (hasBugs) {
-        const bugsResponse = await fetch("/api/enhance-feedback", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            notes: additionalBugs,
-            language,
-            existingFeedback: feedbackText,
-            type: "bugs",
-          }),
-        });
+        try {
+          const bugsResponse = await fetch("/api/enhance-feedback", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              notes: additionalBugs,
+              language,
+              existingFeedback: feedbackText,
+              type: "bugs",
+            }),
+          });
 
-        const bugsData = await bugsResponse.json();
+          const bugsData = await bugsResponse.json();
 
-        if (!bugsResponse.ok) {
-          throw new Error(bugsData.error || "Failed to enhance bugs");
+          if (!bugsResponse.ok) {
+            // If API key not configured, fallback to plain text
+            if (bugsData.error?.includes("API key not configured")) {
+              newAdditions = `[Additional Bugs]\n• ${additionalBugs.trim()}`;
+            } else {
+              throw new Error(bugsData.error || "Failed to enhance bugs");
+            }
+          } else {
+            newAdditions = bugsData.enhancedFeedback;
+          }
+        } catch (apiError) {
+          // Fallback: add plain text if API fails
+          newAdditions = `[Additional Bugs]\n• ${additionalBugs.trim()}`;
         }
-
-        newAdditions = bugsData.enhancedFeedback;
       }
 
       // Process optional suggestions
       if (hasSuggestions) {
-        const suggestionsResponse = await fetch("/api/enhance-feedback", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            notes: optionalSuggestions,
-            language,
-            existingFeedback: feedbackText,
-            type: "suggestions",
-          }),
-        });
+        try {
+          const suggestionsResponse = await fetch("/api/enhance-feedback", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              notes: optionalSuggestions,
+              language,
+              existingFeedback: feedbackText,
+              type: "suggestions",
+            }),
+          });
 
-        const suggestionsData = await suggestionsResponse.json();
+          const suggestionsData = await suggestionsResponse.json();
 
-        if (!suggestionsResponse.ok) {
-          throw new Error(suggestionsData.error || "Failed to enhance suggestions");
+          if (!suggestionsResponse.ok) {
+            // If API key not configured, fallback to plain text
+            if (suggestionsData.error?.includes("API key not configured")) {
+              const separator = newAdditions && !newAdditions.endsWith("\n\n") ? "\n\n" : "";
+              newAdditions = newAdditions 
+                ? `${newAdditions}${separator}[Optional]\n• ${optionalSuggestions.trim()}`
+                : `[Optional]\n• ${optionalSuggestions.trim()}`;
+            } else {
+              throw new Error(suggestionsData.error || "Failed to enhance suggestions");
+            }
+          } else {
+            const separator = newAdditions && !newAdditions.endsWith("\n\n") ? "\n\n" : "";
+            const optionalHeader = language === "en" ? "[Optional]" : "[Опционально]";
+            newAdditions = newAdditions 
+              ? `${newAdditions}${separator}${optionalHeader}\n${suggestionsData.enhancedFeedback}`
+              : `${optionalHeader}\n${suggestionsData.enhancedFeedback}`;
+          }
+        } catch (apiError) {
+          // Fallback: add plain text if API fails
+          const separator = newAdditions && !newAdditions.endsWith("\n\n") ? "\n\n" : "";
+          newAdditions = newAdditions 
+            ? `${newAdditions}${separator}[Optional]\n• ${optionalSuggestions.trim()}`
+            : `[Optional]\n• ${optionalSuggestions.trim()}`;
         }
-
-        const separator = newAdditions && !newAdditions.endsWith("\n\n") ? "\n\n" : "";
-        const optionalHeader = language === "en" ? "[Optional]" : "[Опционально]";
-        newAdditions = newAdditions 
-          ? `${newAdditions}${separator}${optionalHeader}\n${suggestionsData.enhancedFeedback}`
-          : `${optionalHeader}\n${suggestionsData.enhancedFeedback}`;
       }
       
       // Append to existing feedback

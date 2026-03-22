@@ -221,13 +221,23 @@ function FeedbackSection({
       const data = await response.json();
 
       if (!response.ok) {
+        // If API key not configured, fallback to regenerating base feedback
+        if (data.error?.includes("API key not configured")) {
+          const newFeedback = generateFeedback(selectedIssues, failedChecks, newLanguage);
+          setDisplayText(newFeedback);
+          setLanguage(newLanguage);
+          return;
+        }
         throw new Error(data.error || "Failed to translate");
       }
 
       setDisplayText(data.translatedText);
       setLanguage(newLanguage);
     } catch (error) {
-      alert("Error translating feedback: " + (error as Error).message);
+      // Fallback: regenerate base feedback on error
+      const newFeedback = generateFeedback(selectedIssues, failedChecks, newLanguage);
+      setDisplayText(newFeedback);
+      setLanguage(newLanguage);
     } finally {
       setIsTranslating(false);
     }
