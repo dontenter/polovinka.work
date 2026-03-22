@@ -4,14 +4,18 @@ export type GameTestResult = {
   id: string;
   gameName: string;
   date: string;
-  // Basic checks
-  basicChecks: Record<string, boolean>;
+  // Basic checks - can be true (yes), false (no), or undefined (not answered)
+  basicChecks: Record<string, boolean | undefined>;
+  // Selected issues for failed basic checks (checkId -> array of issue indices)
+  basicCheckIssues?: Record<string, number[]>;
   // Feature checks
   features: {
     id: string;
     name: string;
     applicable: boolean;
     checkedItems: string[];
+    // Failed items with selected issues (itemId -> array of issue indices)
+    failedItems?: Record<string, number[]>;
   }[];
   // Rating criteria
   ratingCriteria: {

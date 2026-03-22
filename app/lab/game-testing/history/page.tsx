@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Gamepad2, ArrowLeft, Search, Calendar, Trash2, Eye, Loader2 } from "lucide-react";
+import { Gamepad2, ArrowLeft, Search, Calendar, Trash2, Eye, Loader2, Lock, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,9 @@ import {
   type GameTestResult,
 } from "@/lib/game-testing-storage";
 
-function formatDate(dateString: string): string {
+const DELETE_PASSWORD = "delete";
+
+function formatDateTime(dateString: string): string {
   const date = new Date(dateString);
   return date.toLocaleDateString("en-US", {
     day: "2-digit",
@@ -25,12 +27,69 @@ function formatDate(dateString: string): string {
   });
 }
 
+function formatDateHeader(dateString: string): string {
+  const date = new Date(dateString);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  // Reset time for comparison
+  const dateNoTime = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const todayNoTime = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const yesterdayNoTime = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+
+  if (dateNoTime.getTime() === todayNoTime.getTime()) {
+    return "Today";
+  } else if (dateNoTime.getTime() === yesterdayNoTime.getTime()) {
+    return "Yesterday";
+  } else {
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: date.getFullYear() !== today.getFullYear() ? "numeric" : undefined,
+    });
+  }
+}
+
 function getRatingBadge(score: number) {
   if (score === 5) return { label: "5", variant: "success" as const, color: "bg-green-100 text-green-700" };
   if (score === 4) return { label: "4", variant: "accent" as const, color: "bg-blue-100 text-blue-700" };
   if (score === 3) return { label: "3", variant: "warning" as const, color: "bg-yellow-100 text-yellow-700" };
   if (score === 2) return { label: "2", variant: "secondary" as const, color: "bg-orange-100 text-orange-700" };
   return { label: "1", variant: "destructive" as const, color: "bg-red-100 text-red-700" };
+}
+
+interface GroupedResults {
+  dateKey: string;
+  dateLabel: string;
+  results: GameTestResult[];
+}
+
+function groupResultsByDate(results: GameTestResult[]): GroupedResults[] {
+  const groups = new Map<string, GameTestResult[]>();
+
+  for (const result of results) {
+    const date = new Date(result.date);
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    
+    if (!groups.has(dateKey)) {
+      groups.set(dateKey, []);
+    }
+    groups.get(dateKey)!.push(result);
+  }
+
+  // Sort by date descending
+  const sortedKeys = Array.from(groups.keys()).sort().reverse();
+
+  return sortedKeys.map((key) => {
+    const results = groups.get(key)!;
+    return {
+      dateKey: key,
+      dateLabel: formatDateHeader(results[0].date),
+      results: results.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    };
+  });
 }
 
 export default function GameTestingHistoryPage() {
@@ -40,6 +99,12 @@ export default function GameTestingHistoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  
+  // Password modal state
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordError, setPasswordError] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadResults() {
@@ -66,18 +131,45 @@ export default function GameTestingHistoryPage() {
     );
   }, [results, searchQuery]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this record?")) return;
+  const groupedResults = useMemo(() => {
+    return groupResultsByDate(filteredResults);
+  }, [filteredResults]);
+
+  const handleDeleteClick = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPendingDeleteId(id);
+    setPasswordInput("");
+    setPasswordError(false);
+    setShowPasswordModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (passwordInput !== DELETE_PASSWORD) {
+      setPasswordError(true);
+      return;
+    }
+
+    if (!pendingDeleteId) return;
 
     try {
-      setDeletingId(id);
-      await deleteGameTestResult(id);
-      setResults((prev) => prev.filter((r) => r.id !== id));
+      setDeletingId(pendingDeleteId);
+      setShowPasswordModal(false);
+      await deleteGameTestResult(pendingDeleteId);
+      setResults((prev) => prev.filter((r) => r.id !== pendingDeleteId));
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete result");
     } finally {
       setDeletingId(null);
+      setPendingDeleteId(null);
+      setPasswordInput("");
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowPasswordModal(false);
+    setPendingDeleteId(null);
+    setPasswordInput("");
+    setPasswordError(false);
   };
 
   return (
@@ -166,70 +258,152 @@ export default function GameTestingHistoryPage() {
         </Card>
       )}
 
-      {/* Results List */}
-      {!isLoading && !error && filteredResults.length > 0 && (
-        <div className="space-y-4">
-          {filteredResults.map((result) => {
-            const ratingBadge = getRatingBadge(result.ratingScore);
-            const isDeleting = deletingId === result.id;
-            return (
-              <Card
-                key={result.id}
-                className="hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => router.push(`/lab/game-testing/history/${result.id}`)}
+      {/* Grouped Results */}
+      {!isLoading && !error && groupedResults.length > 0 && (
+        <div className="space-y-8">
+          {groupedResults.map((group) => (
+            <div key={group.dateKey}>
+              {/* Date Header */}
+              <div className="flex items-center gap-3 mb-4">
+                <h2 className="text-lg font-semibold text-foreground">
+                  {group.dateLabel}
+                </h2>
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-sm text-muted-foreground">
+                  {group.results.length} result{group.results.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+
+              {/* Results for this date */}
+              <div className="space-y-3">
+                {group.results.map((result) => {
+                  const ratingBadge = getRatingBadge(result.ratingScore);
+                  const isDeleting = deletingId === result.id;
+                  return (
+                    <Card
+                      key={result.id}
+                      className="hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => router.push(`/lab/game-testing/history/${result.id}`)}
+                    >
+                      <CardContent className="p-4 sm:p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold">{result.gameName}</h3>
+                            <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                              <Calendar className="h-4 w-4" />
+                              {formatDateTime(result.date)}
+                            </div>
+                            <div className="flex items-center gap-3 mt-3">
+                              <Badge className={ratingBadge.color}>
+                                Rating: {ratingBadge.label}
+                              </Badge>
+                              {result.hasFailedBasicChecks && (
+                                <Badge variant="destructive">
+                                  Issues Found
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/lab/game-testing/history/${result.id}`);
+                              }}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              View
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={isDeleting}
+                              onClick={(e) => handleDeleteClick(result.id, e)}
+                            >
+                              {isDeleting ? (
+                                <Loader2 className="h-4 w-4 text-red-500 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg shadow-lg max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-red-100">
+                  <Lock className="h-5 w-5 text-red-600" />
+                </div>
+                <h3 className="text-lg font-semibold">Confirm Deletion</h3>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCancelDelete}
               >
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold">{result.gameName}</h3>
-                      <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        {formatDate(result.date)}
-                      </div>
-                      <div className="flex items-center gap-3 mt-3">
-                        <Badge className={ratingBadge.color}>
-                          Rating: {ratingBadge.label}
-                        </Badge>
-                        {result.hasFailedBasicChecks && (
-                          <Badge variant="destructive">
-                            Issues Found
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/lab/game-testing/history/${result.id}`);
-                        }}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={isDeleting}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(result.id);
-                        }}
-                      >
-                        {isDeleting ? (
-                          <Loader2 className="h-4 w-4 text-red-500 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <p className="text-muted-foreground mb-4">
+              Enter the password to delete this record.
+            </p>
+
+            <Input
+              type="password"
+              placeholder="Enter password..."
+              value={passwordInput}
+              onChange={(e) => {
+                setPasswordInput(e.target.value);
+                setPasswordError(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleConfirmDelete();
+                }
+              }}
+              className={passwordError ? "border-red-500" : ""}
+              autoFocus
+            />
+
+            {passwordError && (
+              <p className="text-red-500 text-sm mt-2">
+                Incorrect password. Please try again.
+              </p>
+            )}
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={handleCancelDelete}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={handleConfirmDelete}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

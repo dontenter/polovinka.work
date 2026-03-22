@@ -1,0 +1,378 @@
+[
+  {
+    "id": 1,
+    "requirement": "SDK интегрирован",
+    "requirement_en": "SDK Integration",
+    "sub_requirements": [
+      {
+        "issue": "SDK не интегрирован в игру",
+        "feedback_en": "We do not see the initialization of Playgama Bridge in the game. Could you confirm if you have integrated our SDK? Implementation is mandatory for testing and publication. Guide: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/sdk-initialization",
+        "feedback_ru": "Мы не видим инициализации Playgama Bridge в игре. Подтвердите, пожалуйста, интегрирован ли наш SDK? Интеграция обязательна для тестирования и публикации. Инструкция: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/sdk-initialization"
+      },
+      {
+        "issue": "Game Ready не отправляется",
+        "feedback_en": "At the start of the game, the Game Ready message is not being sent. Please ensure you call the method when the game has fully loaded and is ready for user interaction. Guide: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/game-ready-method",
+        "feedback_ru": "В начале игры не отправляется сообщение с параметром Game Ready. Убедитесь, что вызываете метод, когда игра полностью загружена и готова к взаимодействию с пользователем. Гайд: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/game-ready-method"
+      },
+      {
+        "issue": "Game Ready отправляется во время загрузки",
+        "feedback_en": "The Game Ready method is currently being called during the loading screen. According to platform guidelines, it must be triggered only after all loading screens, progress bars, and engine logos have finished loading - precisely when the player can interact with the game.",
+        "feedback_ru": "Метод Game Ready сейчас вызывается во время загрузочного экрана. Согласно правилам платформ, он должен вызываться только после завершения всех загрузочных экранов, прогресс-баров и логотипов движка - именно в момент, когда игрок может взаимодействовать с игрой."
+      },
+      {
+        "issue": "Нет конфиг файла",
+        "feedback_en": "Missing config file – Error: Failed to load bridge config: ./playgama-bridge-config.json 404. Ensure the playgama-bridge-config.json file exists in the game root directory and is correctly referenced in the SDK initialization.",
+        "feedback_ru": "Отсутствует конфигурационный файл – Ошибка: Failed to load bridge config: ./playgama-bridge-config.json 404. Убедитесь, что файл playgama-bridge-config.json существует в корневой директории игры и правильно указан при инициализации SDK."
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "requirement": "Нет спорного контента / IP",
+    "requirement_en": "No Disputed Content / IP",
+    "sub_requirements": [
+      {
+        "issue": "Игра повторяет другую игру",
+        "feedback_en": "During our review, we noticed that it closely resembles [Game Name]. We already have a similar game published by another developer. Please ensure your game offers unique gameplay and assets. Requirements: https://wiki.playgama.com/playgama/game-requirements/content-requirements",
+        "feedback_ru": "При проверке мы заметили, что ваша игра очень похожа на [Название]. У нас уже есть похожая игра от другого разработчика. Убедитесь, что ваша игра предлагает уникальный геймплей и ассеты. Требования: https://wiki.playgama.com/playgama/game-requirements/content-requirements"
+      },
+      {
+        "issue": "Используются защищенные IP",
+        "feedback_en": "The game uses characters/assets from [Franchise Name], which is protected by copyright/trademark. Using established IP without permission may lead to legal liability and removal from the platform. Please replace with original assets.",
+        "feedback_ru": "Игра использует персонажей/ассеты из [Название франшизы], которые защищены авторским правом/товарным знаком. Использование чужой интеллектуальной собственности без разрешения может привести к юридической ответственности и удалению с платформы. Замените на оригинальные ассеты."
+      },
+      {
+        "issue": "Реалистичная кровь и насилие",
+        "feedback_en": "Your game has a too realistic depiction of violent acts and blood. Please remove blood elements or change the color from red to blue/green to meet platform content requirements. Details: https://wiki.playgama.com/playgama/game-requirements/content-requirements",
+        "feedback_ru": "В вашей игре слишком реалистичное изображение насильственных действий и крови. Пожалуйста, удалите элементы крови или измените цвет с красного на синий/зеленый, чтобы соответствовать требованиям платформы к контенту. Подробнее: https://wiki.playgama.com/playgama/game-requirements/content-requirements"
+      },
+      {
+        "issue": "Внешние ссылки на соцсети/сторонние ресурсы",
+        "feedback_en": "External links to third-party resources (social media, other games, websites) have been detected. Please remove all external links except email and Terms of Service to comply with platform requirements.",
+        "feedback_ru": "Обнаружены внешние ссылки на сторонние ресурсы (соцсети, другие игры, сайты). Удалите все внешние ссылки, кроме email и Terms of Service, чтобы соответствовать требованиям платформ."
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "requirement": "Нет крэшей",
+    "requirement_en": "No Crashes",
+    "sub_requirements": [
+      {
+        "issue": "Игра не загружается (blank screen, stuck on loading)",
+        "feedback_en": "Blank screen on our QA Tool / The game doesn't load at all, even the loading screen doesn't show up. Please check SDK integration and ensure all game files are included in the build. Game is stuck on loading screen and does not proceed.",
+        "feedback_ru": "Пустой экран в нашем QA Tool / Игра не загружается совсем, даже загрузочный экран не отображается. Проверьте интеграцию SDK и убедитесь, что все файлы игры включены в билд. Игра зависает на экране загрузки и не продолжает загрузку."
+      },
+      {
+        "issue": "Зависание при определенных действиях (после рекламы, при выходе в меню)",
+        "feedback_en": "The game freezes after watching reward ads / when pressing Exit button / during gameplay. This is a critical bug affecting user experience. Please investigate and fix the freeze issue.",
+        "feedback_ru": "Игра зависает после просмотра рекламных роликов / при нажатии кнопки Выход / во время геймплея. Это критический баг, влияющий на пользовательский опыт. Исследуйте и исправьте проблему зависания."
+      },
+      {
+        "issue": "WebAssembly ошибки",
+        "feedback_en": "WebAssembly error occurred: [error details]. This typically indicates corrupted build files or SDK initialization issues. Please rebuild the game and verify all WASM files are correctly loaded.",
+        "feedback_ru": "Произошла ошибка WebAssembly: [детали ошибки]. Это обычно указывает на поврежденные файлы сборки или проблемы с инициализацией SDK. Пересоберите игру и проверьте, что все WASM-файлы корректно загружаются."
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "requirement": "Нет кривого UI в разных режимах Scale Test + пр изменении размеров браузера",
+    "requirement_en": "No Broken UI in Different Scale Modes",
+    "sub_requirements": [
+      {
+        "issue": "Черные/белые полосы по краям (black bars)",
+        "feedback_en": "Black bars/white bars remain along the edges of the screen on desktop and mobile. Please add a filling background (static image or themed backdrop) instead of black bars to meet platform standards. Screenshots: [attach]",
+        "feedback_ru": "Черные/белые полосы остаются по краям экрана на десктопе и мобильных. Добавьте заполняющий фон (статичное изображение или тематический фон) вместо черных полос, чтобы соответствовать стандартам платформ. Скриншоты: [прикрепить]"
+      },
+      {
+        "issue": "Наложение UI элементов друг на друга",
+        "feedback_en": "Internal elements and texts overlap each other when resizing browser window or on different screen sizes. Please use Anchors Preset to ensure proper interface scaling across resolutions. Guide: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/element-overlapping",
+        "feedback_ru": "Внутренние элементы и тексты накладываются друг на друга при изменении размера окна браузера или на разных разрешениях экрана. Используйте Anchors Preset для корректного масштабирования интерфейса на разных разрешениях. Гайд: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/element-overlapping"
+      },
+      {
+        "issue": "Баннер перекрывает игровые кнопки",
+        "feedback_en": "The advertisement banner overlaps gameplay buttons (e.g., pause, shop, action buttons), making the game unplayable. Please adjust the game layout so that UI elements are not covered by the banner.",
+        "feedback_ru": "Рекламный баннер перекрывает игровые кнопки (например, паузу, магазин, кнопки действий), делая игру неиграбельной. Отрегулируйте расположение элементов интерфейса так, чтобы они не перекрывались баннером."
+      },
+      {
+        "issue": "Элементы обрезаются на мобильных/десктопе",
+        "feedback_en": "The game field extends beyond the screen boundaries and some UI elements are cut off on mobile/desktop. Please check adaptive scaling settings to ensure all elements are displayed correctly within the visible area.",
+        "feedback_ru": "Игровое поле выходит за границы экрана, и некоторые элементы интерфейса обрезаются на мобильных/десктопе. Проверьте настройки адаптивного масштабирования, чтобы все элементы отображались корректно в видимой области."
+      },
+      {
+        "issue": "Некорректное масштабирование при изменении размера окна",
+        "feedback_en": "When resizing the browser window, UI elements do not scale properly or change positions unexpectedly. Please implement responsive UI design that adapts to different aspect ratios and window sizes.",
+        "feedback_ru": "При изменении размера окна браузера элементы интерфейса масштабируются некорректно или неожиданно меняют позиции. Реализуйте адаптивный дизайн интерфейса, который подстраивается под разные соотношения сторон и размеры окна."
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "requirement": "Английский язык по умолчанию",
+    "requirement_en": "English Language by Default",
+    "sub_requirements": [
+      {
+        "issue": "Нет английской локализации или она не дефолтная",
+        "feedback_en": "The game currently launches in Russian by default. English localization is mandatory for most platforms. Please add English as default and implement automatic language detection. Guide: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/game-language",
+        "feedback_ru": "Игра запускается на русском языке по умолчанию. Английская локализация обязательна для большинства платформ. Пожалуйста, добавьте английский как язык по умолчанию и реализуйте автоматическое определение языка. Гайд: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/game-language"
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "requirement": "После перезагрузки страницы - прогресс игрока сохраняется",
+    "requirement_en": "Player Progress Saved After Reload",
+    "sub_requirements": [
+      {
+        "issue": "Прогресс не сохраняется после перезагрузки",
+        "feedback_en": "Player progress resets after reloading the page. Highest score/coins/level progress are lost. Please ensure you are using Bridge.storage methods to persist data. Guide: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/game-progress-is-not-being-saved",
+        "feedback_ru": "Прогресс игрока сбрасывается после перезагрузки страницы. Рекорд/монеты/прогресс уровней теряются. Убедитесь, что используете методы Bridge.storage для сохранения данных. Гайд: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/game-progress-is-not-being-saved"
+      },
+      {
+        "issue": "Сохранение работает не через методы SDK",
+        "feedback_en": "Data is being saved to local storage instead of Bridge.storage. For reliable performance and cross-device sync, please use Bridge.storage methods without explicitly specifying storage type. Guide: https://wiki.playgama.com/playgama/sdk/engines/unity/user-data",
+        "feedback_ru": "Данные сохраняются в local storage вместо Bridge.storage. Для надежной работы и синхронизации между устройствами используйте методы Bridge.storage без явного указания типа хранилища. Гайд: https://wiki.playgama.com/playgama/sdk/engines/unity/user-data"
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "requirement": "Есть звук в игре",
+    "requirement_en": "Game Has Sound",
+    "sub_requirements": [
+      {
+        "issue": "Нет звука или музыки",
+        "feedback_en": "The game is completely silent or lacks background music/sound effects. Audio significantly impacts player engagement. Please add appropriate sounds and music. Requirements: https://wiki.playgama.com/playgama/game-requirements/user-experience-requirements",
+        "feedback_ru": "Игра полностью бесшумна или отсутствует фоновая музыка/звуковые эффекты. Аудио значительно влияет на вовлеченность игроков. Пожалуйста, добавьте соответствующие звуки и музыку. Требования: https://wiki.playgama.com/playgama/game-requirements/user-experience-requirements"
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "requirement": "Вызов rewarded рекламы ожидаем (кнопки намекают что там реклама)",
+    "requirement_en": "Rewarded Ads Expected",
+    "sub_requirements": [
+      {
+        "issue": "Rewarded ad не работает или дает бонус без просмотра",
+        "feedback_en": "Rewarded ads don't work correctly - the reward is granted without watching the ad or the ad doesn't show. Please fix the reward logic to ensure ads are watched before granting bonuses.",
+        "feedback_ru": "Rewarded-реклама работает некорректно - награда выдается без просмотра рекламы или реклама не показывается. Исправьте логику наград, чтобы бонусы выдавались только после просмотра рекламы."
+      },
+      {
+        "issue": "Награда не соответствует заявленной",
+        "feedback_en": "The rewarded ad bonus does not match the value indicated in the game (e.g., shows x2 but gives different amount). Please align the reward value with the displayed text to avoid player confusion.",
+        "feedback_ru": "Бонус за rewarded-рекламу не соответствует значению, указанному в игре (например, показывает x2, но дает другую сумму). Приведите значение награды в соответствие с отображаемым текстом, чтобы избежать недопонимания игроков."
+      },
+      {
+        "issue": "Кнопка не указывает что это реклама (нет AD иконки/текста)",
+        "feedback_en": "The rewarded ad button does not clearly indicate it will show an advertisement (no video icon or 'AD' text). Please add a video icon or 'Watch Ad' label to make it obvious for players. Screenshot: [attach]",
+        "feedback_ru": "Кнопка rewarded-рекламы не указывает явно, что будет показана реклама (нет иконки видео или текста 'AD'). Добавьте иконку видео или подпись 'Смотреть рекламу', чтобы игрокам было очевидно. Скриншот: [прикрепить]"
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "requirement": "Игру можно продолжать без обязательного реворда или пройти уровень заново без просмотра рекламы",
+    "requirement_en": "Game Can Continue Without Mandatory Reward",
+    "sub_requirements": [
+      {
+        "issue": "Обязательная реклама для прогресса",
+        "feedback_en": "The level cannot be completed/continued without watching a rewarded ad. Rewarded ads must be optional bonuses only - players must be able to progress without watching ads. Please add a 'Continue without reward' option.",
+        "feedback_ru": "Уровень невозможно пройти/продолжить без просмотра rewarded-рекламы. Rewarded-реклама должна быть только опциональным бонусом - игроки должны иметь возможность прогрессировать без просмотра рекламы. Добавьте опцию 'Продолжить без награды'."
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "requirement": "Игра ставится на паузу при рекламе",
+    "requirement_en": "Game Pauses During Ads",
+    "sub_requirements": [
+      {
+        "issue": "Игра не ставится на паузу во время рекламы",
+        "feedback_en": "The game does not pause during interstitial/rewarded ads - gameplay continues in background. Please subscribe to ad state change events and pause the game when the ad state becomes 'Opened'. Guide: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/interstitial-ads-sound",
+        "feedback_ru": "Игра не ставится на паузу во время interstitial/rewarded-рекламы - геймплей продолжается в фоне. Подпишитесь на события изменения состояния рекламы и ставьте игру на паузу, когда состояние рекламы становится 'Opened'. Гайд: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/interstitial-ads-sound"
+      }
+    ]
+  },
+  {
+    "id": 11,
+    "requirement": "Звук пропадает во время рекламы и при сворачивании вкладки",
+    "requirement_en": "Sound Muted During Ads and Tab Switch",
+    "sub_requirements": [
+      {
+        "issue": "Звук не отключается во время рекламы",
+        "feedback_en": "Sound continues playing during interstitial/rewarded ads. Please mute audio when the ad opens and restore it when the ad closes. Guide: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/interstitial-ads-sound",
+        "feedback_ru": "Звук продолжает играть во время interstitial/rewarded-рекламы. Отключайте аудио, когда открывается реклама, и восстанавливайте, когда она закрывается. Гайд: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/interstitial-ads-sound"
+      },
+      {
+        "issue": "Звук не отключается при сворачивании вкладки",
+        "feedback_en": "Sound continues after minimizing the browser tab. Please subscribe to the visibilityStateChanged event to mute sound when the tab is not active and resume when the player returns. Guide: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/sound-does-not-pause-when-switching-browser-tabs",
+        "feedback_ru": "Звук продолжает играть после сворачивания вкладки браузера. Подпишитесь на событие visibilityStateChanged, чтобы отключать звук, когда вкладка не активна, и возобновлять при возврате игрока. Гайд: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/sound-does-not-pause-when-switching-browser-tabs"
+      }
+    ]
+  },
+  {
+    "id": 12,
+    "requirement": "Есть кнопка отключения звука в игре",
+    "requirement_en": "Mute Button in Game",
+    "sub_requirements": [
+      {
+        "issue": "Отсутствует кнопка mute",
+        "feedback_en": "No mute button was found in the game. Please add a sound/music toggle button to the settings or main menu so players can control audio.",
+        "feedback_ru": "Кнопка отключения звука не найдена. Добавьте переключатель звука/музыки в настройки или главное меню, чтобы игроки могли управлять аудио."
+      },
+      {
+        "issue": "Кнопка есть но не работает",
+        "feedback_en": "The mute button is present but does not function correctly - sound remains on when toggled off. Please fix the button logic to properly mute/unmute audio.",
+        "feedback_ru": "Кнопка отключения звука присутствует, но не работает корректно - звук остается включенным при переключении. Исправьте логику кнопки для корректного отключения/включения аудио."
+      },
+      {
+        "issue": "Настройка звука не сохраняется после перезагрузки",
+        "feedback_en": "Sound settings reset after reloading the page or watching an ad. Please save the mute state via Bridge.storage so it persists across sessions.",
+        "feedback_ru": "Настройки звука сбрасываются после перезагрузки страницы или просмотра рекламы. Сохраняйте состояние отключения звука через Bridge.storage, чтобы оно сохранялось между сессиями."
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "requirement": "Если есть поддержка мобайла - игра там запускается и успешно проходится первый уровень",
+    "requirement_en": "Mobile Support Works",
+    "sub_requirements": [
+      {
+        "issue": "Игра не загружается на iOS/Android",
+        "feedback_en": "The game does not load on mobile devices (iOS/Android) - stuck on loading screen or shows blank screen. Please ensure mobile compatibility and optimize loading times.",
+        "feedback_ru": "Игра не загружается на мобильных устройствах (iOS/Android) - зависает на экране загрузки или показывает пустой экран. Убедитесь в совместимости с мобильными устройствами и оптимизируйте время загрузки."
+      },
+      {
+        "issue": "Mobile: controls are not responsive",
+        "feedback_en": "Touch controls on mobile devices are not responsive or do not register inputs correctly. Please test and fix mobile input handling to ensure the first level is playable.",
+        "feedback_ru": "Сенсорное управление на мобильных устройствах не отзывчиво или не регистрирует нажатия корректно. Протестируйте и исправьте обработку ввода на мобильных, чтобы первый уровень был проходим."
+      },
+      {
+        "issue": "The game is lagging on mobile devices",
+        "feedback_en": "The game experiences significant lag or FPS drops on mobile devices (iOS/Android). Please optimize performance for mobile platforms to ensure smooth gameplay.",
+        "feedback_ru": "Игра сильно тормозит или просадки FPS на мобильных устройствах (iOS/Android). Оптимизируйте производительность для мобильных платформ, чтобы обеспечить плавный геймплей."
+      }
+    ]
+  },
+  {
+    "id": 14,
+    "requirement": "Если есть авторизация - она работает",
+    "requirement_en": "Authorization Works",
+    "sub_requirements": [
+      {
+        "issue": "Авторизация не работает или блокирует вход",
+        "feedback_en": "Authorization is not working properly or is mandatory, blocking gameplay. Please make authorization optional or fix the auth flow to prevent blocking players.",
+        "feedback_ru": "Авторизация работает некорректно или является обязательной, блокируя геймплей. Сделайте авторизацию опциональной или исправьте процесс авторизации, чтобы не блокировать игроков."
+      }
+    ]
+  },
+  {
+    "id": 15,
+    "requirement": "Если есть несколько языков - проверить что игра подстраивается через метода бриджа под выбранный язык",
+    "requirement_en": "Multiple Languages Support",
+    "sub_requirements": [
+      {
+        "issue": "Нет автоматического определения языка через Bridge",
+        "feedback_en": "The game does not automatically detect platform language via Bridge.platform.language. Please implement automatic language detection so the game launches in the correct language based on user settings. Guide: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/game-language",
+        "feedback_ru": "Игра не определяет язык платформы автоматически через Bridge.platform.language. Реализуйте автоматическое определение языка, чтобы игра запускалась на правильном языке на основе настроек пользователя. Гайд: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/game-language"
+      }
+    ]
+  },
+  {
+    "id": 16,
+    "requirement": "Мультиплеер: Запускаем игру и в Desktop и в мобилке. Тестируем, что игроки видят друг друга",
+    "requirement_en": "Multiplayer: Cross-Platform Works",
+    "sub_requirements": [
+      {
+        "issue": "Игроки не видят друг друга между платформами",
+        "feedback_en": "Multiplayer synchronization between Desktop and Mobile is not working - players cannot see each other. Please fix cross-platform sync or hide the multiplayer feature if not ready.",
+        "feedback_ru": "Синхронизация мультиплеера между Desktop и Mobile не работает - игроки не видят друг друга. Исправьте кроссплатформенную синхронизацию или скройте функцию мультиплеера, если она не готова."
+      }
+    ]
+  },
+  {
+    "id": 17,
+    "requirement": "Лидерборды: Играем какое-то время, проигрываем. Открываем лидерборд - мы там есть.",
+    "requirement_en": "Leaderboards: Player Appears After Game",
+    "sub_requirements": [
+      {
+        "issue": "Игрока нет в лидерборде после игры",
+        "feedback_en": "After playing and losing, the player does not appear in the leaderboard. Please ensure scores are being submitted correctly using Bridge.leaderboard methods.",
+        "feedback_ru": "После игры и проигрыша игрок не появляется в лидерборде. Убедитесь, что очки отправляются корректно с использованием методов Bridge.leaderboard."
+      }
+    ]
+  },
+  {
+    "id": 18,
+    "requirement": "Лидерборды: Перезагружаем страницу открываем страницу - мы там все еще есть",
+    "requirement_en": "Leaderboards: Data Persists After Reload",
+    "sub_requirements": [
+      {
+        "issue": "Данные лидерборда не сохраняются после перезагрузки",
+        "feedback_en": "Leaderboard data is not persisted after page reload. Please ensure player scores are saved and retrieved correctly via Bridge storage methods.",
+        "feedback_ru": "Данные лидерборда не сохраняются после перезагрузки страницы. Убедитесь, что очки игрока сохраняются и загружаются корректно через методы хранения Bridge."
+      }
+    ]
+  },
+  {
+    "id": 19,
+    "requirement": "Лидерборды: Пробуем побить свой рекорд. Открываем лидерборд - данные там изменились.",
+    "requirement_en": "Leaderboards: Record Updates",
+    "sub_requirements": [
+      {
+        "issue": "Рекорд не обновляется в лидерборде",
+        "feedback_en": "When beating the high score, the leaderboard does not update with the new score. Please verify the score submission and update logic.",
+        "feedback_ru": "При побитии рекорда лидерборд не обновляется новым счетом. Проверьте логику отправки и обновления очков."
+      }
+    ]
+  },
+  {
+    "id": 20,
+    "requirement": "Инн-апы: Пробуем совершить покупку - все проходит, покупка начисляется",
+    "requirement_en": "In-App Purchases: Purchase Works",
+    "sub_requirements": [
+      {
+        "issue": "Покупка не работает или не начисляется",
+        "feedback_en": "In-app purchase is not working - either the purchase fails or the currency/items are not credited after successful purchase. Please review the purchase logic and ensure items are granted immediately.",
+        "feedback_ru": "Внутриигровая покупка не работает - либо покупка не проходит, либо валюта/предметы не начисляются после успешной покупки. Проверьте логику покупок и убедитесь, что предметы выдаются сразу."
+      }
+    ]
+  },
+  {
+    "id": 21,
+    "requirement": "Инн-апы: Перезагружаем страницу - видим что все купленное ранее отображается",
+    "requirement_en": "In-App Purchases: Purchases Persist",
+    "sub_requirements": [
+      {
+        "issue": "Купленные предметы не сохраняются",
+        "feedback_en": "After reloading the page, purchased items or currency are lost. Please ensure purchase data is persisted using Bridge.storage methods.",
+        "feedback_ru": "После перезагрузки страницы купленные предметы или валюта теряются. Убедитесь, что данные о покупках сохраняются с использованием методов Bridge.storage."
+      }
+    ]
+  },
+  {
+    "id": 22,
+    "requirement": "Инн-апы: Если покупка была non-consumable - проверяем, что ее нельзя купить снова",
+    "requirement_en": "In-App Purchases: Non-Consumable Cannot Be Repurchased",
+    "sub_requirements": [
+      {
+        "issue": "Non-consumable можно купить несколько раз",
+        "feedback_en": "Non-consumable purchases can be bought multiple times. Please implement checks to prevent repurchasing items that should only be bought once (e.g., remove ads, permanent unlocks).",
+        "feedback_ru": "Non-consumable покупки можно купить несколько раз. Реализуйте проверки, чтобы предотвратить повторную покупку предметов, которые должны быть куплены только один раз (например, отключение рекламы, перманентные разблокировки)."
+      }
+    ]
+  },
+  {
+    "id": 23,
+    "requirement": "Кнопка шэринга пропадает, когда в Feature Control флаг Social Share отключен и наоборот",
+    "requirement_en": "Social Share Button Respects Feature Control",
+    "sub_requirements": [
+      {
+        "issue": "Кнопка соцшаринга видна на неподдерживаемых платформах",
+        "feedback_en": "The social share button is visible on platforms that do not support this feature (should only appear on VK). Please check the Feature Control flag and hide the button when Social Share is disabled.",
+        "feedback_ru": "Кнопка социального шаринга видна на платформах, которые не поддерживают эту функцию (должна быть только на VK). Проверьте флаг Feature Control и скройте кнопку, когда Social Share отключен."
+      }
+    ]
+  }
+]
