@@ -170,23 +170,76 @@ function FailedFeatureCheckDetails({
 // Feedback display component
 function FeedbackSection({ 
   selectedIssues, 
-  failedChecks 
+  failedChecks,
+  savedFeedbackText,
 }: { 
   selectedIssues: SelectedIssue[];
   failedChecks: { requirementId: number; itemLabel?: string }[];
+  savedFeedbackText?: string;
 }) {
   const [language, setLanguage] = useState<"en" | "ru">("en");
   const [copied, setCopied] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [displayText, setDisplayText] = useState(savedFeedbackText || "");
 
-  const feedback = generateFeedback(selectedIssues, failedChecks, language);
+  // Generate base feedback if no saved feedback
+  const baseFeedback = generateFeedback(selectedIssues, failedChecks, language);
+
+  // Initialize display text
+  useEffect(() => {
+    if (savedFeedbackText) {
+      setDisplayText(savedFeedbackText);
+    } else {
+      setDisplayText(baseFeedback);
+    }
+  }, [savedFeedbackText, baseFeedback]);
+
+  // Handle language switch with translation
+  const handleLanguageSwitch = async () => {
+    const newLanguage = language === "en" ? "ru" : "en";
+    
+    if (!displayText.trim()) {
+      setLanguage(newLanguage);
+      const newFeedback = generateFeedback(selectedIssues, failedChecks, newLanguage);
+      setDisplayText(newFeedback);
+      return;
+    }
+    
+    setIsTranslating(true);
+    try {
+      const response = await fetch("/api/translate-feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: displayText,
+          targetLanguage: newLanguage,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to translate");
+      }
+
+      setDisplayText(data.translatedText);
+      setLanguage(newLanguage);
+    } catch (error) {
+      alert("Error translating feedback: " + (error as Error).message);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(feedback);
+    await navigator.clipboard.writeText(displayText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (selectedIssues.length === 0 && failedChecks.length === 0) return null;
+  if (selectedIssues.length === 0 && failedChecks.length === 0 && !savedFeedbackText) return null;
 
   return (
     <Card className="mb-8">
@@ -204,18 +257,24 @@ function FeedbackSection({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setLanguage(language === "en" ? "ru" : "en")}
+            onClick={handleLanguageSwitch}
+            disabled={isTranslating}
             className="gap-1"
           >
             <Languages className="h-4 w-4" />
-            {language === "en" ? "English" : "Русский"}
+            {isTranslating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              language === "en" ? "English" : "Русский"
+            )}
           </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <Textarea
-          value={feedback}
+          value={displayText}
           readOnly
+          disabled={isTranslating}
           className="min-h-[300px] resize-none font-mono text-sm bg-muted/30"
         />
         <Button onClick={handleCopy} className="w-full gap-2">
@@ -455,7 +514,11 @@ export default function GameTestResultPage() {
       )}
 
       {/* Generated Feedback */}
-      <FeedbackSection selectedIssues={allSelectedIssues} failedChecks={allFailedChecksWithoutIssues} />
+      <FeedbackSection 
+        selectedIssues={allSelectedIssues} 
+        failedChecks={allFailedChecksWithoutIssues}
+        savedFeedbackText={result.feedbackText}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2 mt-8">
         {/* Left Column */}

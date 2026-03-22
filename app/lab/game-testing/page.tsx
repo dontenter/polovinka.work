@@ -447,38 +447,168 @@ function FeedbackModal({
   onClose,
   selectedIssues,
   failedChecks,
+  onFeedbackTextChange,
 }: {
   isOpen: boolean;
   onClose: () => void;
   selectedIssues: SelectedIssue[];
   failedChecks: { requirementId: number; itemLabel?: string }[];
+  onFeedbackTextChange?: (text: string) => void;
 }) {
   const [language, setLanguage] = useState<"en" | "ru">("en");
   const [copied, setCopied] = useState(false);
+  const [additionalBugs, setAdditionalBugs] = useState("");
+  const [optionalSuggestions, setOptionalSuggestions] = useState("");
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  
+  // Main feedback text (base + AI additions + manual edits)
+  const [feedbackText, setFeedbackTextState] = useState("");
 
-  const feedback = useMemo(() => {
-    return generateFeedback(selectedIssues, failedChecks, language);
-  }, [selectedIssues, failedChecks, language]);
+  // Wrapper to update both local state and parent
+  const setFeedbackText = (text: string | ((prev: string) => string)) => {
+    const newText = typeof text === "function" ? text(feedbackText) : text;
+    setFeedbackTextState(newText);
+    onFeedbackTextChange?.(newText);
+  };
 
-  // State for editable text
-  const [editedText, setEditedText] = useState(feedback);
-
-  // Update edited text when feedback changes (language switch)
+  // Generate initial feedback when modal opens
   useEffect(() => {
-    setEditedText(feedback);
-  }, [feedback]);
+    if (isOpen) {
+      const initialFeedback = generateFeedback(selectedIssues, failedChecks, language);
+      setFeedbackTextState(initialFeedback);
+      onFeedbackTextChange?.(initialFeedback);
+      setAdditionalBugs("");
+      setOptionalSuggestions("");
+    }
+  }, [isOpen, selectedIssues, failedChecks]);
+
+  // Handle language switch - translate the entire feedback text
+  const handleLanguageSwitch = async () => {
+    const newLanguage = language === "en" ? "ru" : "en";
+    
+    // If there's no text to translate, just switch language
+    if (!feedbackText.trim()) {
+      setLanguage(newLanguage);
+      const newFeedback = generateFeedback(selectedIssues, failedChecks, newLanguage);
+      setFeedbackText(newFeedback);
+      return;
+    }
+    
+    setIsTranslating(true);
+    try {
+      const response = await fetch("/api/translate-feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: feedbackText,
+          targetLanguage: newLanguage,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to translate");
+      }
+
+      setFeedbackText(data.translatedText);
+      setLanguage(newLanguage);
+    } catch (error) {
+      alert("Error translating feedback: " + (error as Error).message);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(editedText);
+    await navigator.clipboard.writeText(feedbackText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleEnhance = async () => {
+    const hasBugs = additionalBugs.trim().length > 0;
+    const hasSuggestions = optionalSuggestions.trim().length > 0;
+    
+    if (!hasBugs && !hasSuggestions) return;
+    
+    setIsEnhancing(true);
+    try {
+      let newAdditions = "";
+
+      // Process additional bugs
+      if (hasBugs) {
+        const bugsResponse = await fetch("/api/enhance-feedback", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            notes: additionalBugs,
+            language,
+            existingFeedback: feedbackText,
+            type: "bugs",
+          }),
+        });
+
+        const bugsData = await bugsResponse.json();
+
+        if (!bugsResponse.ok) {
+          throw new Error(bugsData.error || "Failed to enhance bugs");
+        }
+
+        newAdditions = bugsData.enhancedFeedback;
+      }
+
+      // Process optional suggestions
+      if (hasSuggestions) {
+        const suggestionsResponse = await fetch("/api/enhance-feedback", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            notes: optionalSuggestions,
+            language,
+            existingFeedback: feedbackText,
+            type: "suggestions",
+          }),
+        });
+
+        const suggestionsData = await suggestionsResponse.json();
+
+        if (!suggestionsResponse.ok) {
+          throw new Error(suggestionsData.error || "Failed to enhance suggestions");
+        }
+
+        const separator = newAdditions && !newAdditions.endsWith("\n\n") ? "\n\n" : "";
+        const optionalHeader = language === "en" ? "[Optional]" : "[Опционально]";
+        newAdditions = newAdditions 
+          ? `${newAdditions}${separator}${optionalHeader}\n${suggestionsData.enhancedFeedback}`
+          : `${optionalHeader}\n${suggestionsData.enhancedFeedback}`;
+      }
+      
+      // Append to existing feedback
+      const separator = feedbackText && !feedbackText.endsWith("\n\n") ? "\n\n" : "";
+      setFeedbackText(feedbackText ? `${feedbackText}${separator}${newAdditions}` : newAdditions);
+      
+      setAdditionalBugs(""); // Clear the bugs field
+      setOptionalSuggestions(""); // Clear the suggestions field
+    } catch (error) {
+      alert("Error processing notes: " + (error as Error).message);
+    } finally {
+      setIsEnhancing(false);
+    }
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-background rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+      <div className="bg-background rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-3">
             <MessageSquare className="h-5 w-5 text-accent" />
@@ -488,11 +618,16 @@ function FeedbackModal({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setLanguage(language === "en" ? "ru" : "en")}
+              onClick={handleLanguageSwitch}
+              disabled={isTranslating}
               className="gap-1"
             >
               <Languages className="h-4 w-4" />
-              {language === "en" ? "English" : "Русский"}
+              {isTranslating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                language === "en" ? "English" : "Русский"
+              )}
             </Button>
             <Button variant="ghost" size="icon" onClick={onClose}>
               <XCircle className="h-5 w-5" />
@@ -500,12 +635,67 @@ function FeedbackModal({
           </div>
         </div>
 
-        <div className="p-4 flex-1 overflow-auto">
+        <div className="p-4 flex-1 overflow-auto space-y-4">
+          {/* Main feedback textarea */}
           <Textarea
-            value={editedText}
-            onChange={(e) => setEditedText(e.target.value)}
-            className="min-h-[300px] resize-y font-mono text-sm bg-muted/30"
+            value={feedbackText}
+            onChange={(e) => setFeedbackText(e.target.value)}
+            disabled={isTranslating}
+            className="min-h-[180px] resize-y font-mono text-sm bg-muted/30"
+            placeholder="Generated feedback will appear here..."
           />
+
+          {/* Additional notes section */}
+          <div className="border-t pt-4 space-y-4">
+            {/* Two columns layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Additional Bugs Field */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Additional Bugs</label>
+                  <span className="text-xs text-muted-foreground">Critical issues</span>
+                </div>
+                <Textarea
+                  value={additionalBugs}
+                  onChange={(e) => setAdditionalBugs(e.target.value)}
+                  placeholder="e.g., Game crashes when..."
+                  className="min-h-[100px] resize-y text-sm"
+                />
+              </div>
+
+              {/* Optional Suggestions Field */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Optional Suggestions</label>
+                  <span className="text-xs text-muted-foreground">Improvements & advice</span>
+                </div>
+                <Textarea
+                  value={optionalSuggestions}
+                  onChange={(e) => setOptionalSuggestions(e.target.value)}
+                  placeholder="e.g., UI could be more..."
+                  className="min-h-[100px] resize-y text-sm"
+                />
+              </div>
+            </div>
+
+            <Button
+              onClick={handleEnhance}
+              disabled={isEnhancing || isTranslating || (!additionalBugs.trim() && !optionalSuggestions.trim())}
+              className="w-full gap-2"
+            >
+              {isEnhancing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  Add to Feedback
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         <div className="flex items-center justify-between p-4 border-t gap-3">
@@ -617,6 +807,7 @@ export default function GameTestingPage() {
 
   // Feedback modal state
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackText, setFeedbackText] = useState("");
 
   // Game name input modal state
   const [showNameModal, setShowNameModal] = useState(false);
@@ -981,6 +1172,7 @@ export default function GameTestingPage() {
       detailedAnswers,
       generatedDescription,
       hasFailedBasicChecks,
+      feedbackText,
     };
 
     try {
@@ -1564,29 +1756,29 @@ export default function GameTestingPage() {
         </Button>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-          {/* Generate Feedback Button - only shown when there are failed checks with issues */}
-          {(hasFailedBasicChecks || hasFailedFeatureChecks) && (
-            <Button
-              variant="secondary"
-              onClick={async () => {
-                if (!gameName.trim()) {
-                  setPendingAction("feedback");
-                  setShowNameModal(true);
-                  return;
-                }
-                // Save before showing feedback
-                await handleSave();
-                setShowFeedbackModal(true);
-              }}
-              className="gap-2"
-            >
-              <MessageSquare className="h-4 w-4" />
-              Generate Feedback
+          {/* Generate Feedback Button */}
+          <Button
+            variant="secondary"
+            onClick={async () => {
+              if (!gameName.trim()) {
+                setPendingAction("feedback");
+                setShowNameModal(true);
+                return;
+              }
+              // Save before showing feedback
+              await handleSave();
+              setShowFeedbackModal(true);
+            }}
+            className="gap-2"
+          >
+            <MessageSquare className="h-4 w-4" />
+            Generate Feedback
+            {(allSelectedIssues.length + failedChecksWithoutIssues.length) > 0 && (
               <Badge variant="outline" className="ml-1 text-xs">
                 {allSelectedIssues.length + failedChecksWithoutIssues.length}
               </Badge>
-            </Button>
-          )}
+            )}
+          </Button>
 
           <Button onClick={() => handleSave()} disabled={isSaving}>
             {isSaving ? (
@@ -1610,6 +1802,7 @@ export default function GameTestingPage() {
         onClose={() => setShowFeedbackModal(false)}
         selectedIssues={allSelectedIssues}
         failedChecks={failedChecksWithoutIssues}
+        onFeedbackTextChange={setFeedbackText}
       />
 
       {/* Game Name Input Modal */}

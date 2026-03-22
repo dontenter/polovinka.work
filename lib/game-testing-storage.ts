@@ -33,6 +33,8 @@ export type GameTestResult = {
   generatedDescription?: string;
   // Failed basic checks flag
   hasFailedBasicChecks: boolean;
+  // Full feedback text (including AI enhancements)
+  feedbackText?: string;
 };
 
 export async function saveGameTestResult(

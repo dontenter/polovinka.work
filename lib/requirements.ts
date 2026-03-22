@@ -147,14 +147,6 @@ export function generateFeedback(
     }
   });
 
-  // Add closing message
-  lines.push(
-    "",
-    language === "en"
-      ? "Please address these issues and resubmit the game for review."
-      : "Пожалуйста, исправьте эти проблемы и отправьте игру на повторное рассмотрение."
-  );
-
   return lines.join("\n").trim();
 }
 

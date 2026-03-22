@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const QA_OPENAI_API_KEY = process.env.QA_OPENAI_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 
 export async function POST(request: NextRequest) {
   // Check if API key is configured
-  if (!QA_OPENAI_API_KEY) {
+  if (!OPENAI_API_KEY) {
     return NextResponse.json(
       { error: "OpenAI API key not configured" },
       { status: 500 }
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${QA_OPENAI_API_KEY}`,
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
         model: "gpt-3.5-turbo",
