@@ -8,6 +8,8 @@ export type GameTestResult = {
   basicChecks: Record<string, boolean | undefined>;
   // Selected issues for failed basic checks (checkId -> array of issue indices)
   basicCheckIssues?: Record<string, number[]>;
+  // Notes for basic checks
+  basicChecksNotes?: string;
   // Feature checks
   features: {
     id: string;

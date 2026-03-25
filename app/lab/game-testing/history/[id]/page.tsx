@@ -580,6 +580,16 @@ export default function GameTestResultPage() {
                     </div>
                   );
                 })}
+
+                {/* Notes */}
+                {result.basicChecksNotes && (
+                  <div className="mt-4 pt-4 border-t">
+                    <label className="text-sm font-medium mb-2 block text-muted-foreground">Notes</label>
+                    <div className="text-sm whitespace-pre-wrap bg-muted/30 p-3 rounded-lg">
+                      {result.basicChecksNotes}
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -844,6 +844,9 @@ export default function GameTestingPage() {
   // Basic checks state with issues
   const [basicChecks, setBasicChecks] = useState<Record<string, CheckState>>({});
 
+  // Basic checks notes
+  const [basicChecksNotes, setBasicChecksNotes] = useState("");
+
   // Feedback modal state
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
@@ -1216,6 +1219,7 @@ export default function GameTestingPage() {
       generatedDescription,
       hasFailedBasicChecks,
       feedbackText,
+      basicChecksNotes,
     };
 
     try {
@@ -1527,6 +1531,17 @@ export default function GameTestingPage() {
                   </div>
                 </div>
               )}
+
+              {/* Notes textarea */}
+              <div className="mt-4 pt-4 border-t">
+                <label className="text-sm font-medium mb-2 block">Notes</label>
+                <Textarea
+                  value={basicChecksNotes}
+                  onChange={(e) => setBasicChecksNotes(e.target.value)}
+                  placeholder="Add your notes here..."
+                  className="min-h-[100px] resize-y text-sm"
+                />
+              </div>
             </CardContent>
           </Card>
 
