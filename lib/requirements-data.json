@@ -173,6 +173,12 @@
         "feedback_en": "Consider adding a countdown before showing ads (3...2...1) to warn players about upcoming interstitial.",
         "feedback_ru": "Рассмотрите возможность добавить countdown до показа рекламы (3...2...1), чтобы предупреждать игроков о предстоящем interstitial.",
         "type": "recommendation"
+      },
+      {
+        "issue": "Interstitial рекламы нет или она слишком редкая",
+        "feedback_en": "We recommend adding more frequent interstitial calls. Don't forget to add a countdown (3...2...1) before showing the ad.",
+        "feedback_ru": "Рекомендуем добавить более частые вызовы interstitial. Не забудьте только про countdown (3...2...1).",
+        "type": "recommendation"
       }
     ]
   },
