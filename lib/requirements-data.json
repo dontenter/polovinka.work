@@ -176,8 +176,8 @@
       },
       {
         "issue": "Interstitial рекламы нет или она слишком редкая",
-        "feedback_en": "We recommend adding more frequent interstitial calls. Don't forget to add a countdown (3...2...1) before showing the ad.",
-        "feedback_ru": "Рекомендуем добавить более частые вызовы interstitial. Не забудьте только про countdown (3...2...1).",
+        "feedback_en": "We recommend adding more interstitial ads to improve monetization. If the ad is shown during gameplay, don't forget to add a warning and countdown (3...2...1) before showing the ad.",
+        "feedback_ru": "Рекомендуем добавить больше interstitial рекламы для улучшения монетизации. Если реклама запускается во время геймплея, не забудьте добавить предупреждение и countdown (3...2...1).",
         "type": "recommendation"
       }
     ]
