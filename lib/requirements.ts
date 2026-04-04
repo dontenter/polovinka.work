@@ -4,6 +4,7 @@ export interface SubRequirement {
   issue: string;
   feedback_en: string;
   feedback_ru: string;
+  type?: "bug" | "recommendation"; // recommendation = optional suggestion, not a critical bug
 }
 
 export interface Requirement {
@@ -80,9 +81,10 @@ export interface FailedCheck {
 export function generateFeedback(
   selectedIssues: SelectedIssue[],
   failedChecks: FailedCheck[] = [],
-  language: "en" | "ru" = "en"
+  language: "en" | "ru" = "en",
+  existingRecommendations?: string[]
 ): string {
-  if (selectedIssues.length === 0 && failedChecks.length === 0) {
+  if (selectedIssues.length === 0 && failedChecks.length === 0 && (!existingRecommendations || existingRecommendations.length === 0)) {
     return language === "en"
       ? "All basic checks passed. The game is ready for further review."
       : "Все базовые проверки пройдены. Игра готова к дальнейшему рассмотрению.";
@@ -91,6 +93,7 @@ export function generateFeedback(
   const feedbackField = language === "en" ? "feedback_en" : "feedback_ru";
 
   const lines: string[] = [];
+  const recommendationLines: string[] = existingRecommendations ? [...existingRecommendations] : [];
   
   // Group issues by requirement
   const groupedByRequirement = selectedIssues.reduce((acc, issue) => {
@@ -113,14 +116,28 @@ export function generateFeedback(
 
     // Use English or Russian title based on language
     const title = language === "en" ? requirement.requirement_en : requirement.requirement;
-    lines.push(`\n[${title}]`);
+    
+    // Separate bugs and recommendations
+    const bugIssues: string[] = [];
     
     issueIndices.forEach((issueIndex) => {
       const subReq = requirement.sub_requirements[issueIndex];
       if (subReq) {
-        lines.push(`• ${subReq[feedbackField as keyof SubRequirement]}`);
+        const feedbackText = subReq[feedbackField as keyof SubRequirement] as string;
+        if (subReq.type === "recommendation") {
+          // Add recommendations directly to the recommendation lines (without requirement title)
+          recommendationLines.push(`• ${feedbackText}`);
+        } else {
+          bugIssues.push(`• ${feedbackText}`);
+        }
       }
     });
+    
+    // Add bugs to main lines
+    if (bugIssues.length > 0) {
+      lines.push(`\n[${title}]`);
+      bugIssues.forEach(line => lines.push(line));
+    }
   });
 
   // Add failed checks without specific issues
@@ -148,6 +165,13 @@ export function generateFeedback(
     }
   });
 
+  // Add recommendations section at the end (single [Optional] section)
+  if (recommendationLines.length > 0) {
+    const optionalHeader = language === "en" ? "\n[Optional]" : "\n[Опционально]";
+    lines.push(optionalHeader);
+    recommendationLines.forEach(line => lines.push(line));
+  }
+
   return lines.join("\n").trim();
 }
 
@@ -168,12 +192,12 @@ export const BASIC_CHECK_ITEMS: BasicCheckItem[] = [
   { id: "progress_save", label: "После перезагрузки страницы - прогресс сохраняется", description: "Прогресс игрока не теряется", requirementId: 6 },
   { id: "sound", label: "Есть звук в игре", description: "Игра имеет звуковое оформление", requirementId: 7 },
   { id: "interstitial_ads", label: "Interstitial реклама работает корректно", description: "Проверяем частоту и наличие interstitial рекламы", requirementId: 8 },
-  { id: "rewarded_ads", label: "Вызов rewarded рекламы ожидаем", description: "Кнопки намекают что там реклама", requirementId: 9 },
+  { id: "rewarded_ads", label: "Rewarded реклама работает корректно", description: "Кнопки намекают что там реклама", requirementId: 9 },
   { id: "continue_no_ads", label: "Игру можно продолжать без обязательного реворда", description: "Можно пройти уровень заново без просмотра рекламы", requirementId: 10 },
   { id: "pause_ads", label: "Игра ставится на паузу при рекламе", description: "Геймлей останавливается во время показа рекламы", requirementId: 11 },
   { id: "sound_mute_ads", label: "Звук пропадает во время рекламы и при сворачивании вкладки", description: "Корректное поведение звука", requirementId: 12 },
   { id: "mute_button", label: "Есть кнопка отключения звука в игре", description: "Пользователь может выключить звук", requirementId: 13 },
-  { id: "mobile_support", label: "Если есть поддержка мобайла - игра там запускается и нормально проходится первый уровень", description: "Мобильная версия работает корректно", requirementId: 14 },
+  { id: "mobile_support", label: "Если есть поддержка мобайла - игра работает без проблем и зависаний", description: "Мобильная версия работает корректно", requirementId: 14 },
   { id: "auth", label: "Если есть авторизация - она работает", description: "Система авторизации функционирует", requirementId: 15 },
   { id: "languages", label: "Если есть несколько языков - игра подстраивается под выбранный язык", description: "Локализация работает корректно", requirementId: 16 },
 ];

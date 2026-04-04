@@ -167,12 +167,18 @@
         "issue": "Частота показа interstitial чаще чем раз в 60 секунд",
         "feedback_en": "Interstitial ads are shown more frequently than once every 60 seconds. Please limit interstitial ad frequency to no more than once per 60 seconds to maintain good user experience and comply with platform guidelines.",
         "feedback_ru": "Interstitial реклама показывается чаще чем раз в 60 секунд. Ограничьте частоту показа Interstitial рекламы не чаще одного раза в 60 секунд, чтобы поддерживать хороший пользовательский опыт и соответствовать правилам платформ."
+      },
+      {
+        "issue": "Реклама показывается прямо во время геймплея без предупреждения",
+        "feedback_en": "Consider adding a countdown before showing ads (3...2...1) to warn players about upcoming interstitial.",
+        "feedback_ru": "Рассмотрите возможность добавить countdown до показа рекламы (3...2...1), чтобы предупреждать игроков о предстоящем interstitial.",
+        "type": "recommendation"
       }
     ]
   },
   {
     "id": 9,
-    "requirement": "Вызов rewarded рекламы ожидаем (кнопки намекают что там реклама)",
+    "requirement": "Rewarded реклама работает корректно",
     "requirement_en": "Rewarded Ads Expected",
     "sub_requirements": [
       {
@@ -266,14 +272,19 @@
         "feedback_ru": "Игра не загружается на мобильных устройствах (iOS/Android) - зависает на экране загрузки или показывает пустой экран. Убедитесь в совместимости с мобильными устройствами и оптимизируйте время загрузки."
       },
       {
-        "issue": "Mobile: controls are not responsive",
+        "issue": "Управление на мобильных устройствах не отзывчиво",
         "feedback_en": "Touch controls on mobile devices are not responsive or do not register inputs correctly. Please test and fix mobile input handling to ensure the first level is playable.",
         "feedback_ru": "Сенсорное управление на мобильных устройствах не отзывчиво или не регистрирует нажатия корректно. Протестируйте и исправьте обработку ввода на мобильных, чтобы первый уровень был проходим."
       },
       {
-        "issue": "The game is lagging on mobile devices",
+        "issue": "Игра тормозит на мобильных устройствах",
         "feedback_en": "The game experiences significant lag or FPS drops on mobile devices (iOS/Android). Please optimize performance for mobile platforms to ensure smooth gameplay.",
         "feedback_ru": "Игра сильно тормозит или просадки FPS на мобильных устройствах (iOS/Android). Оптимизируйте производительность для мобильных платформ, чтобы обеспечить плавный геймплей."
+      },
+      {
+        "issue": "При долгом нажатии внутри игрового поля или WebApp происходит выделение элемента или открывается контекстное меню",
+        "feedback_en": "On iOS devices, long tap should not trigger field selection or context menus within the game or WebApp.\nTo fix this issue, apply the following CSS rules globally:\n{\n  -webkit-user-select: none;       /* Safari */\n  user-select: none;               /* Standard */\n  -webkit-touch-callout: none;     /* iOS Safari: disables callout like copy/paste */\n}\nThese styles should be added to your HTML or CSS file to ensure proper long tap behavior on iOS.",
+        "feedback_ru": "На iOS устройствах долгое нажатие не должно вызывать выделение элемента или открытие контекстного меню внутри игры или WebApp.\nЧтобы исправить эту проблему, примените следующие CSS правила глобально:\n{\n  -webkit-user-select: none;       /* Safari */\n  user-select: none;               /* Standard */\n  -webkit-touch-callout: none;     /* iOS Safari: отключает callout как copy/paste */\n}\nЭти стили следует добавить в HTML или CSS файл, чтобы обеспечить правильное поведение при долгом нажатии на iOS."
       }
     ]
   },

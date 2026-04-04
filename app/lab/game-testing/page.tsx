@@ -28,6 +28,9 @@ import {
   Copy,
   Check,
   Languages,
+  ImagePlus,
+  Upload,
+  X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -264,14 +267,26 @@ function IssuesSelector({
       {subRequirements.map((subReq, index) => (
         <label
           key={index}
-          className="flex items-start gap-2 p-2 rounded-lg cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+          className={cn(
+            "flex items-start gap-2 p-2 rounded-lg cursor-pointer transition-colors",
+            subReq.type === "recommendation"
+              ? "hover:bg-amber-50 dark:hover:bg-amber-950/30"
+              : "hover:bg-red-50 dark:hover:bg-red-950/30"
+          )}
         >
           <Checkbox
             checked={selectedIssues.includes(index)}
             onChange={(e) => onIssueToggle(requirementId, index)}
             className="mt-0.5"
           />
-          <span className="text-sm text-muted-foreground">{subReq.issue}</span>
+          <div className="flex-1">
+            <span className="text-sm text-muted-foreground">{subReq.issue}</span>
+            {subReq.type === "recommendation" && (
+              <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+                рекомендация
+              </span>
+            )}
+          </div>
         </label>
       ))}
     </div>
@@ -462,6 +477,11 @@ function FeedbackModal({
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   
+  // Image upload state
+  const [uploadedImages, setUploadedImages] = useState<{ url: string; filename: string }[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  
   // Main feedback text (base + AI additions + manual edits)
   const [feedbackText, setFeedbackTextState] = useState("");
 
@@ -640,6 +660,58 @@ function FeedbackModal({
     }
   };
 
+  // Handle image upload to R2
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+    const newImages: { url: string; filename: string }[] = [];
+
+    for (const file of Array.from(files)) {
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/upload-image", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to upload image");
+        }
+
+        newImages.push({ url: data.url, filename: data.filename });
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        setUploadError(`Failed to upload ${file.name}: ${(error as Error).message}`);
+      }
+    }
+
+    setUploadedImages((prev) => [...prev, ...newImages]);
+    setIsUploading(false);
+
+    // Reset input
+    e.target.value = "";
+  };
+
+  // Remove uploaded image from list
+  const handleRemoveImage = (index: number) => {
+    setUploadedImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Copy image URL to clipboard and insert into feedback
+  const handleCopyImageUrl = (url: string) => {
+    navigator.clipboard.writeText(url);
+    // Insert URL at the end of feedback text or on new line
+    const separator = feedbackText && !feedbackText.endsWith("\n") ? "\n" : "";
+    setFeedbackText(feedbackText ? `${feedbackText}${separator}${url}\n` : `${url}\n`);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -731,6 +803,107 @@ function FeedbackModal({
                 </>
               )}
             </Button>
+          </div>
+
+          {/* Image Upload Section */}
+          <div className="border-t pt-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <ImagePlus className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm font-medium">Upload Screenshots</h4>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Upload game screenshots to get shareable links. Click copy button to insert URL into feedback. Max 10MB per image.
+            </p>
+
+            {uploadError && (
+              <p className="text-xs text-red-500">{uploadError}</p>
+            )}
+
+            {/* Upload Button */}
+            <div className="flex items-center gap-3">
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  disabled={isUploading}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isUploading}
+                  className="cursor-pointer"
+                  asChild
+                >
+                  <span>
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload Images
+                      </>
+                    )}
+                  </span>
+                </Button>
+              </label>
+            </div>
+
+            {/* Uploaded Images List */}
+            {uploadedImages.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Uploaded images ({uploadedImages.length}) — click copy to insert into feedback:
+                </p>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {uploadedImages.map((image, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-2 p-2 rounded-md bg-muted/50 border border-border"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs truncate text-muted-foreground">
+                          {image.filename}
+                        </p>
+                        <a
+                          href={image.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-accent hover:underline truncate block"
+                        >
+                          {image.url}
+                        </a>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2"
+                        onClick={() => handleCopyImageUrl(image.url)}
+                        title="Copy & insert into feedback"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-red-500 hover:text-red-600"
+                        onClick={() => handleRemoveImage(index)}
+                        title="Remove from list"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
