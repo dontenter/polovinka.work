@@ -131,8 +131,8 @@
       },
       {
         "issue": "Сохранение работает не через методы SDK",
-        "feedback_en": "Data is being saved to local storage instead of Bridge.storage. For reliable performance and cross-device sync, please use Bridge.storage methods without explicitly specifying storage type. Guide: https://wiki.playgama.com/playgama/sdk/engines/unity/user-data",
-        "feedback_ru": "Данные сохраняются в local storage вместо Bridge.storage. Для надежной работы и синхронизации между устройствами используйте методы Bridge.storage без явного указания типа хранилища. Гайд: https://wiki.playgama.com/playgama/sdk/engines/unity/user-data"
+        "feedback_en": "Data is being saved to local storage instead of Bridge.storage. For reliable performance and cross-device sync, please use Bridge.storage methods without explicitly specifying storage type. Guide: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/game-progress-is-not-being-saved",
+        "feedback_ru": "Данные сохраняются в local storage вместо Bridge.storage. Для надежной работы и синхронизации между устройствами используйте методы Bridge.storage без явного указания типа хранилища. Гайд: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/game-progress-is-not-being-saved"
       }
     ]
   },
