@@ -62,6 +62,13 @@ export async function saveGameTestResult(
   }
 }
 
+export interface PaginatedResults {
+  results: GameTestResult[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export async function getAllGameTestResults(): Promise<GameTestResult[]> {
   const response = await fetch("/api/game-testing");
 
@@ -72,6 +79,26 @@ export async function getAllGameTestResults(): Promise<GameTestResult[]> {
 
   const data = await response.json();
   return data.results || [];
+}
+
+export async function getGameTestResults(
+  page: number,
+  limit: number,
+  search?: string
+): Promise<PaginatedResults> {
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  params.set("limit", String(limit));
+  if (search) params.set("search", search);
+
+  const response = await fetch(`/api/game-testing?${params.toString()}`);
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to fetch results");
+  }
+
+  return await response.json();
 }
 
 export async function getGameTestResultById(

@@ -61,9 +61,14 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET - List all results
-export async function GET() {
+// GET - List results with pagination and optional search
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.max(1, Math.min(100, parseInt(searchParams.get("limit") || "25", 10)));
+    const search = searchParams.get("search")?.toLowerCase().trim() || "";
+
     const { blobs } = await list({ prefix: `${RESULTS_PREFIX}/` });
 
     const results: GameTestResult[] = [];
@@ -85,7 +90,22 @@ export async function GET() {
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
 
-    return NextResponse.json({ results });
+    // Filter by search query
+    const filtered = search
+      ? results.filter((r) => r.gameName.toLowerCase().includes(search))
+      : results;
+
+    const total = filtered.length;
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const paginated = filtered.slice(start, end);
+
+    return NextResponse.json({
+      results: paginated,
+      total,
+      page,
+      limit,
+    });
   } catch (error) {
     console.error("Error listing game test results:", error);
     return NextResponse.json(

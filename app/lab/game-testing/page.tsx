@@ -126,6 +126,7 @@ const RATING_CRITERIA: RatingCriterion[] = [
   { id: "all_platforms", label: "Поддерживаются все платформы?", weight: 1.5, checked: false },
   { id: "leaderboard_multiplayer", label: "Лидерборды или мультиплеер. Есть что-то из этого?", weight: 1.5, checked: false },
   { id: "no_annoying", label: "Есть что-то сильно раздражающее или мешающее игре?", weight: 2, checked: false },
+  { id: "ai_made", label: "Игра полностью сделана на ИИ", weight: 2, checked: false },
   { id: "smart_ads", label: "В игре можно безболезненно вставить Smart Ads?", weight: 1, checked: false },
   { id: "anzu_ads", label: "В игре применима реклама от Anzu?", weight: 1, checked: false },
 ];
@@ -1507,7 +1508,7 @@ export default function GameTestingPage() {
 
   // IDs of criteria excluded from final score calculation
   const EXCLUDED_CRITERIA_IDS = ["smart_ads", "anzu_ads"];
-  const NEGATIVE_CRITERIA_ID = "no_annoying";
+  const NEGATIVE_CRITERIA_IDS = ["no_annoying", "ai_made"];
 
   // Calculate final rating score
   const calculateRating = useMemo(() => {
@@ -1522,7 +1523,7 @@ export default function GameTestingPage() {
       maxPossibleScore += criterion.weight;
 
       if (criterion.checked) {
-        if (criterion.id === NEGATIVE_CRITERIA_ID) {
+        if (NEGATIVE_CRITERIA_IDS.includes(criterion.id)) {
           totalScore -= criterion.weight;
         } else {
           totalScore += criterion.weight;
@@ -1537,8 +1538,10 @@ export default function GameTestingPage() {
       finalScore = 4;
     } else if (totalScore > 16) {
       finalScore = 3;
-    } else {
+    } else if (totalScore > 10) {
       finalScore = 2;
+    } else {
+      finalScore = 1;
     }
 
     return {

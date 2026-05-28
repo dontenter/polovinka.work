@@ -1,20 +1,33 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Gamepad2, ArrowLeft, Search, Calendar, Trash2, Eye, Loader2, Lock, X, ChevronLeft, ChevronRight } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Gamepad2,
+  ArrowLeft,
+  Search,
+  Calendar,
+  Trash2,
+  Eye,
+  Loader2,
+  Lock,
+  X,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  getAllGameTestResults,
   deleteGameTestResult,
+  getGameTestResults,
   type GameTestResult,
 } from "@/lib/game-testing-storage";
 
 const DELETE_PASSWORD = "delete";
+const ITEMS_PER_PAGE = 25;
 
 function formatDateTime(dateString: string): string {
   const date = new Date(dateString);
@@ -33,10 +46,13 @@ function formatDateHeader(dateString: string): string {
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
 
-  // Reset time for comparison
   const dateNoTime = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const todayNoTime = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const yesterdayNoTime = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+  const yesterdayNoTime = new Date(
+    yesterday.getFullYear(),
+    yesterday.getMonth(),
+    yesterday.getDate()
+  );
 
   if (dateNoTime.getTime() === todayNoTime.getTime()) {
     return "Today";
@@ -53,10 +69,14 @@ function formatDateHeader(dateString: string): string {
 }
 
 function getRatingBadge(score: number) {
-  if (score === 5) return { label: "5", variant: "success" as const, color: "bg-green-100 text-green-700" };
-  if (score === 4) return { label: "4", variant: "accent" as const, color: "bg-blue-100 text-blue-700" };
-  if (score === 3) return { label: "3", variant: "warning" as const, color: "bg-yellow-100 text-yellow-700" };
-  if (score === 2) return { label: "2", variant: "secondary" as const, color: "bg-orange-100 text-orange-700" };
+  if (score === 5)
+    return { label: "5", variant: "success" as const, color: "bg-green-100 text-green-700" };
+  if (score === 4)
+    return { label: "4", variant: "accent" as const, color: "bg-blue-100 text-blue-700" };
+  if (score === 3)
+    return { label: "3", variant: "warning" as const, color: "bg-yellow-100 text-yellow-700" };
+  if (score === 2)
+    return { label: "2", variant: "secondary" as const, color: "bg-orange-100 text-orange-700" };
   return { label: "1", variant: "destructive" as const, color: "bg-red-100 text-red-700" };
 }
 
@@ -72,14 +92,13 @@ function groupResultsByDate(results: GameTestResult[]): GroupedResults[] {
   for (const result of results) {
     const date = new Date(result.date);
     const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    
+
     if (!groups.has(dateKey)) {
       groups.set(dateKey, []);
     }
     groups.get(dateKey)!.push(result);
   }
 
-  // Sort by date descending
   const sortedKeys = Array.from(groups.keys()).sort().reverse();
 
   return sortedKeys.map((key) => {
@@ -95,62 +114,85 @@ function groupResultsByDate(results: GameTestResult[]): GroupedResults[] {
 export default function GameTestingHistoryPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [results, setResults] = useState<GameTestResult[]>([]);
+  const [displayedResults, setDisplayedResults] = useState<GameTestResult[]>([]);
+  const [total, setTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 25;
-  
+
   // Password modal state
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordError, setPasswordError] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadResults() {
+  const cacheRef = useRef<Map<string, GameTestResult[]>>(new Map());
+
+  // Prefetch a page into cache without updating UI
+  const prefetchPage = useCallback(async (page: number, search: string) => {
+    const key = `${search}|${page}`;
+    if (cacheRef.current.has(key)) return;
+    if (page < 1) return;
+
+    try {
+      const data = await getGameTestResults(page, ITEMS_PER_PAGE, search || undefined);
+      if (data.results.length > 0) {
+        cacheRef.current.set(key, data.results);
+      }
+    } catch (e) {
+      // silently fail prefetch
+    }
+  }, []);
+
+  // Load a specific page (from cache or API)
+  const loadPageData = useCallback(
+    async (page: number, search: string, showLoading = true) => {
+      const key = `${search}|${page}`;
+
+      if (cacheRef.current.has(key)) {
+        setDisplayedResults(cacheRef.current.get(key)!);
+        setIsLoading(false);
+        prefetchPage(page + 1, search);
+        return;
+      }
+
+      if (showLoading) setIsLoading(true);
       try {
-        setIsLoading(true);
+        const data = await getGameTestResults(page, ITEMS_PER_PAGE, search || undefined);
+        cacheRef.current.set(key, data.results);
+        setDisplayedResults(data.results);
+        setTotal(data.total);
         setError(null);
-        const data = await getAllGameTestResults();
-        setResults(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load results");
       } finally {
-        setIsLoading(false);
+        if (showLoading) setIsLoading(false);
       }
-    }
 
-    loadResults();
-  }, []);
+      prefetchPage(page + 1, search);
+    },
+    [prefetchPage]
+  );
 
-  const filteredResults = useMemo(() => {
-    if (!searchQuery.trim()) return results;
-    const query = searchQuery.toLowerCase();
-    return results.filter((r) =>
-      r.gameName.toLowerCase().includes(query)
-    );
-  }, [results, searchQuery]);
-
-  // Reset to first page when search changes
+  // Load current page whenever page or search changes
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery]);
+    loadPageData(currentPage, searchQuery);
+  }, [currentPage, searchQuery, loadPageData]);
 
   const totalPages = useMemo(() => {
-    return Math.ceil(filteredResults.length / ITEMS_PER_PAGE);
-  }, [filteredResults]);
-
-  const paginatedResults = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    const end = start + ITEMS_PER_PAGE;
-    return filteredResults.slice(start, end);
-  }, [filteredResults, currentPage]);
+    return Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
+  }, [total]);
 
   const groupedResults = useMemo(() => {
-    return groupResultsByDate(paginatedResults);
-  }, [paginatedResults]);
+    return groupResultsByDate(displayedResults);
+  }, [displayedResults]);
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+    cacheRef.current.clear();
+  };
 
   const handleDeleteClick = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -172,7 +214,10 @@ export default function GameTestingHistoryPage() {
       setDeletingId(pendingDeleteId);
       setShowPasswordModal(false);
       await deleteGameTestResult(pendingDeleteId);
-      setResults((prev) => prev.filter((r) => r.id !== pendingDeleteId));
+
+      // Invalidate cache and reload current page to reflect deletion
+      cacheRef.current.clear();
+      await loadPageData(currentPage, searchQuery);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete result");
     } finally {
@@ -223,16 +268,16 @@ export default function GameTestingHistoryPage() {
             <Input
               placeholder="Search by game name..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="pl-10"
-              disabled={isLoading}
+              disabled={isLoading && displayedResults.length === 0}
             />
           </div>
         </CardContent>
       </Card>
 
       {/* Loading State */}
-      {isLoading && (
+      {isLoading && displayedResults.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
@@ -249,7 +294,7 @@ export default function GameTestingHistoryPage() {
             <Button
               variant="outline"
               className="mt-4"
-              onClick={() => window.location.reload()}
+              onClick={() => loadPageData(currentPage, searchQuery)}
             >
               Try Again
             </Button>
@@ -258,7 +303,7 @@ export default function GameTestingHistoryPage() {
       )}
 
       {/* Empty State */}
-      {!isLoading && !error && filteredResults.length === 0 && (
+      {!isLoading && !error && total === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">
@@ -315,9 +360,7 @@ export default function GameTestingHistoryPage() {
                                 Rating: {ratingBadge.label}
                               </Badge>
                               {result.hasFailedBasicChecks && (
-                                <Badge variant="destructive">
-                                  Issues Found
-                                </Badge>
+                                <Badge variant="destructive">Issues Found</Badge>
                               )}
                             </div>
                           </div>
@@ -362,8 +405,7 @@ export default function GameTestingHistoryPage() {
         <div className="flex items-center justify-between mt-8 pt-4 border-t">
           <p className="text-sm text-muted-foreground">
             Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–
-            {Math.min(currentPage * ITEMS_PER_PAGE, filteredResults.length)} of{" "}
-            {filteredResults.length} results
+            {Math.min(currentPage * ITEMS_PER_PAGE, total)} of {total} results
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -402,11 +444,7 @@ export default function GameTestingHistoryPage() {
                 </div>
                 <h3 className="text-lg font-semibold">Confirm Deletion</h3>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCancelDelete}
-              >
+              <Button variant="ghost" size="sm" onClick={handleCancelDelete}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -439,18 +477,10 @@ export default function GameTestingHistoryPage() {
             )}
 
             <div className="flex gap-3 mt-6">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={handleCancelDelete}
-              >
+              <Button variant="outline" className="flex-1" onClick={handleCancelDelete}>
                 Cancel
               </Button>
-              <Button
-                variant="destructive"
-                className="flex-1"
-                onClick={handleConfirmDelete}
-              >
+              <Button variant="destructive" className="flex-1" onClick={handleConfirmDelete}>
                 Delete
               </Button>
             </div>
