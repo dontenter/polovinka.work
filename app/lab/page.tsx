@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Gamepad2, ImageIcon, Wrench, LogOut } from "lucide-react";
+import { Gamepad2, ImageIcon, Wrench, LogOut, FileText } from "lucide-react";
 
 const comingSoonTools = [
   {
@@ -15,6 +15,12 @@ const comingSoonTools = [
     description: "Generate game covers from a 800×800 icon. Output: 1920×1080 and 1080×1920 (Nano Banana).",
     icon: ImageIcon,
     href: "/lab/image-generator",
+  },
+  {
+    title: "Game SEO Text",
+    description: "Generate structured English SEO descriptions from detailed game Q&A.",
+    icon: FileText,
+    href: "/lab/game-seo",
   },
   {
     title: "More tools",
