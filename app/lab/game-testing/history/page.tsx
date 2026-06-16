@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   deleteGameTestResult,
   getGameTestResults,
-  type GameTestResult,
+  type GameTestListItem,
 } from "@/lib/game-testing-storage";
 
 const DELETE_PASSWORD = "delete";
@@ -83,11 +83,11 @@ function getRatingBadge(score: number) {
 interface GroupedResults {
   dateKey: string;
   dateLabel: string;
-  results: GameTestResult[];
+  results: GameTestListItem[];
 }
 
-function groupResultsByDate(results: GameTestResult[]): GroupedResults[] {
-  const groups = new Map<string, GameTestResult[]>();
+function groupResultsByDate(results: GameTestListItem[]): GroupedResults[] {
+  const groups = new Map<string, GameTestListItem[]>();
 
   for (const result of results) {
     const date = new Date(result.date);
@@ -114,7 +114,7 @@ function groupResultsByDate(results: GameTestResult[]): GroupedResults[] {
 export default function GameTestingHistoryPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [displayedResults, setDisplayedResults] = useState<GameTestResult[]>([]);
+  const [displayedResults, setDisplayedResults] = useState<GameTestListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -127,7 +127,7 @@ export default function GameTestingHistoryPage() {
   const [passwordError, setPasswordError] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
-  const cacheRef = useRef<Map<string, GameTestResult[]>>(new Map());
+  const cacheRef = useRef<Map<string, GameTestListItem[]>>(new Map());
 
   // Prefetch a page into cache without updating UI
   const prefetchPage = useCallback(async (page: number, search: string) => {

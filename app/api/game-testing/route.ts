@@ -1,8 +1,18 @@
-import { put, list, del } from "@vercel/blob";
+import { put, del } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
+import {
+  readIndex,
+  writeIndex,
+  type BaseIndexEntry,
+} from "@/lib/blob-index";
 
 const BLOB_PREFIX = process.env.NODE_ENV === "production" ? "prod" : "dev";
 const RESULTS_PREFIX = `${BLOB_PREFIX}/game-testing-results`;
+
+interface GameTestIndexEntry extends BaseIndexEntry {
+  ratingScore: number;
+  hasFailedBasicChecks: boolean;
+}
 
 export type GameTestResult = {
   id: string;
@@ -31,6 +41,25 @@ export type GameTestResult = {
   feedbackText?: string;
 };
 
+function mapBlobToEntry(
+  data: unknown,
+  blob: { url: string; pathname: string }
+): GameTestIndexEntry | null {
+  if (!data || typeof data !== "object") return null;
+  const result = data as GameTestResult;
+  if (!result.id || !result.gameName || !result.date) return null;
+
+  return {
+    id: result.id,
+    gameName: result.gameName,
+    date: result.date,
+    url: blob.url,
+    pathname: blob.pathname,
+    ratingScore: result.ratingScore,
+    hasFailedBasicChecks: result.hasFailedBasicChecks,
+  };
+}
+
 // POST - Save a new result
 export async function POST(request: NextRequest) {
   try {
@@ -51,6 +80,27 @@ export async function POST(request: NextRequest) {
       allowOverwrite: true,
     });
 
+    // Update the lightweight index
+    const entries = await readIndex<GameTestIndexEntry>(RESULTS_PREFIX, mapBlobToEntry);
+    const existingIndex = entries.findIndex((e) => e.id === result.id);
+    const entry: GameTestIndexEntry = {
+      id: result.id,
+      gameName: result.gameName,
+      date: result.date,
+      url: blob.url,
+      pathname: blob.pathname,
+      ratingScore: result.ratingScore,
+      hasFailedBasicChecks: result.hasFailedBasicChecks,
+    };
+
+    if (existingIndex >= 0) {
+      entries[existingIndex] = entry;
+    } else {
+      entries.push(entry);
+    }
+
+    await writeIndex(RESULTS_PREFIX, entries);
+
     return NextResponse.json({ success: true, blob });
   } catch (error) {
     console.error("Error saving game test result:", error);
@@ -69,36 +119,16 @@ export async function GET(request: NextRequest) {
     const limit = Math.max(1, Math.min(100, parseInt(searchParams.get("limit") || "25", 10)));
     const search = searchParams.get("search")?.toLowerCase().trim() || "";
 
-    const { blobs } = await list({ prefix: `${RESULTS_PREFIX}/` });
-
-    const results: GameTestResult[] = [];
-
-    for (const blob of blobs) {
-      try {
-        const response = await fetch(blob.url);
-        if (response.ok) {
-          const data = await response.json();
-          results.push(data);
-        }
-      } catch (e) {
-        console.error(`Failed to fetch blob ${blob.url}:`, e);
-      }
-    }
-
-    // Sort by date descending
-    results.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    const entries = await readIndex<GameTestIndexEntry>(RESULTS_PREFIX, mapBlobToEntry);
 
     // Filter by search query
     const filtered = search
-      ? results.filter((r) => r.gameName.toLowerCase().includes(search))
-      : results;
+      ? entries.filter((r) => r.gameName.toLowerCase().includes(search))
+      : entries;
 
     const total = filtered.length;
     const start = (page - 1) * limit;
-    const end = start + limit;
-    const paginated = filtered.slice(start, end);
+    const paginated = filtered.slice(start, start + limit);
 
     return NextResponse.json({
       results: paginated,

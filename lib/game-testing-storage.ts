@@ -39,6 +39,22 @@ export type GameTestResult = {
   feedbackText?: string;
 };
 
+// Lightweight shape returned by the paginated list endpoint.
+export type GameTestListItem = {
+  id: string;
+  gameName: string;
+  date: string;
+  ratingScore: number;
+  hasFailedBasicChecks: boolean;
+};
+
+export interface PaginatedResults<T = GameTestResult> {
+  results: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export async function saveGameTestResult(
   result: GameTestResult
 ): Promise<void> {
@@ -62,30 +78,11 @@ export async function saveGameTestResult(
   }
 }
 
-export interface PaginatedResults {
-  results: GameTestResult[];
-  total: number;
-  page: number;
-  limit: number;
-}
-
-export async function getAllGameTestResults(): Promise<GameTestResult[]> {
-  const response = await fetch("/api/game-testing");
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to fetch results");
-  }
-
-  const data = await response.json();
-  return data.results || [];
-}
-
 export async function getGameTestResults(
   page: number,
   limit: number,
   search?: string
-): Promise<PaginatedResults> {
+): Promise<PaginatedResults<GameTestListItem>> {
   const params = new URLSearchParams();
   params.set("page", String(page));
   params.set("limit", String(limit));

@@ -43,6 +43,13 @@ export type GameSeoResult = {
   generatedText: string;
 };
 
+// Lightweight shape returned by the paginated list endpoint.
+export type GameSeoListItem = {
+  id: string;
+  gameName: string;
+  date: string;
+};
+
 export async function saveGameSeoResult(result: GameSeoResult): Promise<void> {
   const response = await fetch("/api/game-seo", {
     method: "POST",
@@ -64,30 +71,18 @@ export async function saveGameSeoResult(result: GameSeoResult): Promise<void> {
   }
 }
 
-export interface PaginatedResults {
-  results: GameSeoResult[];
+export interface PaginatedResults<T = GameSeoResult> {
+  results: T[];
   total: number;
   page: number;
   limit: number;
-}
-
-export async function getAllGameSeoResults(): Promise<GameSeoResult[]> {
-  const response = await fetch("/api/game-seo");
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to fetch results");
-  }
-
-  const data = await response.json();
-  return data.results || [];
 }
 
 export async function getGameSeoResults(
   page: number,
   limit: number,
   search?: string
-): Promise<PaginatedResults> {
+): Promise<PaginatedResults<GameSeoListItem>> {
   const params = new URLSearchParams();
   params.set("page", String(page));
   params.set("limit", String(limit));

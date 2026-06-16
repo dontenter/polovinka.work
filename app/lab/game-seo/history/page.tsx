@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import {
   deleteGameSeoResult,
   getGameSeoResults,
-  type GameSeoResult,
+  type GameSeoListItem,
 } from "@/lib/game-seo-storage";
 
 const DELETE_PASSWORD = "delete";
@@ -70,11 +70,11 @@ function formatDateHeader(dateString: string): string {
 interface GroupedResults {
   dateKey: string;
   dateLabel: string;
-  results: GameSeoResult[];
+  results: GameSeoListItem[];
 }
 
-function groupResultsByDate(results: GameSeoResult[]): GroupedResults[] {
-  const groups = new Map<string, GameSeoResult[]>();
+function groupResultsByDate(results: GameSeoListItem[]): GroupedResults[] {
+  const groups = new Map<string, GameSeoListItem[]>();
 
   for (const result of results) {
     const date = new Date(result.date);
@@ -101,7 +101,7 @@ function groupResultsByDate(results: GameSeoResult[]): GroupedResults[] {
 export default function GameSeoHistoryPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [displayedResults, setDisplayedResults] = useState<GameSeoResult[]>([]);
+  const [displayedResults, setDisplayedResults] = useState<GameSeoListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -114,7 +114,7 @@ export default function GameSeoHistoryPage() {
   const [passwordError, setPasswordError] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
-  const cacheRef = useRef<Map<string, GameSeoResult[]>>(new Map());
+  const cacheRef = useRef<Map<string, GameSeoListItem[]>>(new Map());
 
   // Prefetch a page into cache without updating UI
   const prefetchPage = useCallback(async (page: number, search: string) => {

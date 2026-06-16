@@ -1,8 +1,33 @@
-import { put, del, list } from "@vercel/blob";
+import { del } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
+import {
+  readIndex,
+  writeIndex,
+  type BaseIndexEntry,
+} from "@/lib/blob-index";
+import { type GameSeoResult } from "../route";
 
 const BLOB_PREFIX = process.env.NODE_ENV === "production" ? "prod" : "dev";
 const RESULTS_PREFIX = `${BLOB_PREFIX}/game-seo-results`;
+
+type GameSeoIndexEntry = BaseIndexEntry;
+
+function mapBlobToEntry(
+  data: unknown,
+  blob: { url: string; pathname: string }
+): GameSeoIndexEntry | null {
+  if (!data || typeof data !== "object") return null;
+  const result = data as GameSeoResult;
+  if (!result.id || !result.gameName || !result.date) return null;
+
+  return {
+    id: result.id,
+    gameName: result.gameName,
+    date: result.date,
+    url: blob.url,
+    pathname: blob.pathname,
+  };
+}
 
 // GET - Get a single result by ID
 export async function GET(
@@ -11,17 +36,14 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const blobPath = `${RESULTS_PREFIX}/${id}.json`;
+    const entries = await readIndex<GameSeoIndexEntry>(RESULTS_PREFIX, mapBlobToEntry);
+    const entry = entries.find((e) => e.id === id);
 
-    // List blobs to find the exact URL
-    const { blobs } = await list({ prefix: blobPath });
-    const blob = blobs.find((b) => b.pathname === blobPath);
-
-    if (!blob) {
+    if (!entry) {
       return NextResponse.json({ error: "Result not found" }, { status: 404 });
     }
 
-    const response = await fetch(blob.url);
+    const response = await fetch(entry.url);
     if (!response.ok) {
       return NextResponse.json(
         { error: "Failed to fetch result" },
@@ -48,16 +70,35 @@ export async function DELETE(
   try {
     const { id } = await params;
     const blobPath = `${RESULTS_PREFIX}/${id}.json`;
+    const entries = await readIndex<GameSeoIndexEntry>(RESULTS_PREFIX, mapBlobToEntry);
+    const entryIndex = entries.findIndex((e) => e.id === id);
 
-    // List blobs to find the exact URL
-    const { blobs } = await list({ prefix: blobPath });
-    const blob = blobs.find((b) => b.pathname === blobPath);
-
-    if (!blob) {
-      return NextResponse.json({ error: "Result not found" }, { status: 404 });
+    if (entryIndex === -1) {
+      // Fallback: try to delete the blob by pathname even if the index is stale.
+      try {
+        await del(blobPath);
+      } catch (e) {
+        // If del throws because the blob is missing, that's still a 404.
+        return NextResponse.json({ error: "Result not found" }, { status: 404 });
+      }
+      return NextResponse.json({ success: true });
     }
 
-    await del(blob.url);
+    const entry = entries[entryIndex];
+
+    try {
+      await del(entry.url);
+    } catch (e) {
+      console.warn(`Failed to delete blob ${entry.url}, will try pathname fallback`, e);
+      try {
+        await del(blobPath);
+      } catch (fallbackError) {
+        return NextResponse.json({ error: "Result not found" }, { status: 404 });
+      }
+    }
+
+    entries.splice(entryIndex, 1);
+    await writeIndex(RESULTS_PREFIX, entries);
 
     return NextResponse.json({ success: true });
   } catch (error) {
