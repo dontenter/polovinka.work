@@ -34,7 +34,7 @@ export type GameTestResult = {
   }[];
   ratingScore: number;
   ratingRawScore: number;
-  detailedAnswers: Record<string, string>;
+  detailedAnswers?: Record<string, string>;
   generatedDescription?: string;
   hasFailedBasicChecks: boolean;
   basicCheckIssues?: Record<string, number[]>;

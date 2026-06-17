@@ -28,9 +28,10 @@ export async function POST(request: NextRequest) {
 ### INPUT FORMAT
 The input contains:
 1. An optional general prose description in Russian.
-2. Deep-content blocks with literal English labels like "Key Features:", "Game Modes:", "Tips & Tricks:", "Upgrades / Progression / Economy:", "Levels / Maps / Worlds:", "Vehicles / Cars:", "Characters / Heroes / Skins:", "Weapons / Gear / Items:", "Enemies / Bosses:", "Power-ups / Abilities:", "Story / Setting:".
-3. FAQ questionnaire groups with literal English labels: "Core Gameplay & Story", "Mechanics & Progression", "Economy & Customization", "Retention & Engagement".
-4. Inside FAQ groups: pairs marked exactly as "Q:" and "A:".
+2. A "Controls:" block describing desktop and mobile controls. Preserve it as-is when present.
+3. Deep-content blocks with literal English labels like "Key Features:", "Game Modes:", "Tips & Tricks:", "Upgrades / Progression / Economy:", "Levels / Maps / Worlds:", "Vehicles / Cars:", "Characters / Heroes / Skins:", "Weapons / Gear / Items:", "Enemies / Bosses:", "Power-ups / Abilities:", "Story / Setting:".
+4. FAQ questionnaire groups with literal English labels: "Core Gameplay & Story", "Mechanics & Progression", "Economy & Customization", "Retention & Engagement".
+5. Inside FAQ groups: pairs marked exactly as "Q:" and "A:".
 
 ### RULES
 1. TRANSLATE Russian text into fluent English. Keep it concise and suitable for a game store page.

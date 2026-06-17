@@ -29,9 +29,9 @@ export type GameTestResult = {
   // Calculated rating
   ratingScore: number;
   ratingRawScore: number;
-  // Detailed answers (for high-rated games)
-  detailedAnswers: Record<string, string>;
-  // Generated description
+  // Detailed answers (for high-rated games) — deprecated, kept for old results
+  detailedAnswers?: Record<string, string>;
+  // Generated description — deprecated, kept for old results
   generatedDescription?: string;
   // Failed basic checks flag
   hasFailedBasicChecks: boolean;

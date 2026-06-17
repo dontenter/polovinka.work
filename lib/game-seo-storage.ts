@@ -37,6 +37,7 @@ export type FaqGroup = {
 export type GameSeoResult = {
   id: string;
   gameName: string;
+  controls?: string;
   date: string;
   blocks: SeoBlock[];
   faqGroups: FaqGroup[];

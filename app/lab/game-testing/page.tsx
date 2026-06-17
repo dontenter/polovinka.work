@@ -131,117 +131,6 @@ const RATING_CRITERIA: RatingCriterion[] = [
   { id: "anzu_ads", label: "В игре применима реклама от Anzu?", weight: 1, checked: false },
 ];
 
-// Additional questions for high-rated games (4-5 stars)
-type DetailedQuestion = {
-  id: string;
-  label: string;
-  placeholder: string;
-  section?: string;
-};
-
-const DETAILED_QUESTIONS: DetailedQuestion[] = [
-  {
-    id: "about",
-    label: "О чем игра? Что нужно делать?",
-    placeholder: "Idle игра, где нужно избивать прохожих, отбирать у них деньги и захватывать территории",
-  },
-  {
-    id: "storyline",
-    label: "Есть ли в игре сюжетная линия?",
-    placeholder: "Как таковой сюжетной линии нет, но задача понятная - надо захватывать территорию, нанимать работников кто будет грабить вместо тебя и открывать карту постепенно",
-  },
-  {
-    id: "hook",
-    label: "Какая фишка у игры? Чем она может зацепить игроков?",
-    placeholder: "Мало похожих игры про мафию. Есть мини-игры внутри. Хорошая графика, разные задания. Можно кастомизировать персонажа и купать ему мотоциклы чтобы он двигался быстрее",
-  },
-  {
-    id: "bosses",
-    label: "Есть ли боссы и чем они отличаются?",
-    placeholder: "Да, но боссы достаточно слабые все. Они стоят там, где открываются новые города для хавхата - типа стражей",
-  },
-  {
-    id: "currencies",
-    label: "Какие есть валюты и на что их тратить (обычная - золото, премиальная - кристаллы и т.д.)?",
-    placeholder: "Деньги тратятся на открытие новых территорий и прокачку персонажа, новая одежда, мотоциклы и тд",
-  },
-  {
-    id: "progression",
-    label: "Как именно работает прокачка? Что нужно делать чтобы прокачиваться быстрее?",
-    placeholder: "Ездить на мотоцикле и нанимать работников + иногда на просмотр рекламы можно получать в течении какого-то времени двойную награду",
-  },
-  {
-    id: "iap",
-    label: "Есть ли внутриигровые покупки? Что можно покупать и на что влияет? Ускоряет ли донат прогресс игры?",
-    placeholder: "Только на одежду можно тратить деньги и на открытие новых территорий",
-  },
-  {
-    id: "leaderboards",
-    label: "Есть ли лидерборды? Как туда попасть? Какие они есть (недельные, месячные, за все время и т.д.)?",
-    placeholder: "Нет",
-  },
-  {
-    id: "content_elements",
-    label: "Какие есть цепляющие элементы контента (оружие, машины, локации, скилы, отсылки к известным франшизам и т.д.)?",
-    placeholder: "Мини-игры внутри. Разное оружие, понятно что делать, простая механика внутри игры.",
-  },
-  {
-    id: "customization",
-    label: "Есть ли в игре кастомизация? Можно ли настроить внешний вид героя, редактор локация, тюнинг авто и т.д.?",
-    placeholder: "Да, можно купить одежду, можно купить разные мотоциклы",
-  },
-  {
-    id: "daily_rewards",
-    label: "Есть ли ежедневные награды или что-то подобное, что заставляет игрока вернуться?",
-    placeholder: "Да, каждый день захода в игру дает какие-то бонусы типа вещей или заработанных денег",
-  },
-  {
-    id: "sound",
-    label: "Желательно ли играть со звуком, чтобы лучше погрузиться в атмосферу или без звука будут трудности с прохождением?",
-    placeholder: "Музыка хорошая дополняет игры, но необязательна для прохождения игры",
-  },
-  {
-    id: "minigames",
-    label: "Есть ли мини игры внутри основного сюжета? Например, головоломки «три в ряд» внутри стратегии",
-    placeholder: "Да, есть. Где-то попасть баскетбольным мячом в корзину надо, где-то попасть в такт играющей из машины музыке",
-  },
-  {
-    id: "levels_count",
-    label: "Понятно ли какое- кол-во уровней? Сколько их? (прочерк если непонятно)",
-    placeholder: "-",
-  },
-  {
-    id: "achievements",
-    label: "Есть ли система достижений ачивок? Какие они и за что можно получить?",
-    placeholder: "За ежедневный заход в игру, за собранные монтаны, за собранные журналы и тд",
-  },
-  // Multiplayer section
-  {
-    id: "mp_chat",
-    label: "Есть ли внутри игры онлайн чат? Голосовой чат?",
-    placeholder: "",
-    section: "Мультиплеер (если есть)",
-  },
-  {
-    id: "mp_realtime",
-    label: "Игра происходит в реальном времени или асинхронно?",
-    placeholder: "",
-    section: "Мультиплеер (если есть)",
-  },
-  {
-    id: "mp_friends",
-    label: "Можно ли играть с друзьями?",
-    placeholder: "",
-    section: "Мультиплеер (если есть)",
-  },
-  {
-    id: "mp_room_size",
-    label: "Размер комнат, сколько игроков играет одновременно?",
-    placeholder: "",
-    section: "Мультиплеер (если есть)",
-  },
-];
-
 // ==================== COMPONENTS ====================
 
 function cn(...inputs: (string | undefined | false | null)[]) {
@@ -1081,13 +970,6 @@ export default function GameTestingPage() {
   const [ratingCriteria, setRatingCriteria] = useState<RatingCriterion[]>(RATING_CRITERIA);
   const [showRating, setShowRating] = useState(false);
 
-  // Detailed questions state (for games rated 4-5)
-  const [detailedAnswers, setDetailedAnswers] = useState<Record<string, string>>({});
-
-  // Generated description state
-  const [generatedDescription, setGeneratedDescription] = useState<string>("");
-  const [isGenerating, setIsGenerating] = useState(false);
-
   // Toast state
   const [toast, setToast] = useState<{
     message: string;
@@ -1232,42 +1114,6 @@ export default function GameTestingPage() {
     );
   };
 
-  const handleDetailedAnswer = (id: string, value: string) => {
-    setDetailedAnswers((prev) => ({ ...prev, [id]: value }));
-  };
-
-  const handleGenerateDescription = useCallback(async () => {
-    setIsGenerating(true);
-    try {
-      const qaList = DETAILED_QUESTIONS.map((q) => ({
-        label: q.label,
-        answer: detailedAnswers[q.id] || "",
-      }));
-
-      const response = await fetch("/api/generate-description", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ questions: qaList }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        const errorMsg =
-          data.details?.error?.message || data.error || "Failed to generate description";
-        throw new Error(errorMsg);
-      }
-
-      setGeneratedDescription(data.description);
-    } catch (error) {
-      alert("Ошибка при генерации описания: " + (error as Error).message);
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [detailedAnswers]);
-
   // Reset all state for a new game (no confirmation)
   const resetState = () => {
     setGameName("");
@@ -1321,8 +1167,6 @@ export default function GameTestingPage() {
     ]);
     setRatingCriteria(RATING_CRITERIA);
     setShowRating(false);
-    setDetailedAnswers({});
-    setGeneratedDescription("");
   };
 
   const handleReset = () => {
@@ -1389,8 +1233,6 @@ export default function GameTestingPage() {
       ratingCriteria,
       ratingScore: calculateRating.score,
       ratingRawScore: calculateRating.rawScore,
-      detailedAnswers,
-      generatedDescription,
       hasFailedBasicChecks,
       feedbackText,
       basicChecksNotes,
@@ -1895,96 +1737,6 @@ export default function GameTestingPage() {
           </Card>
         </div>
       </div>
-
-      {/* Detailed Questions for High-Rated Games (4-5 stars) */}
-      {showRating && calculateRating.score >= 4 && (
-        <Card className="mt-6">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-500/10">
-                <Trophy className="h-5 w-5 text-green-500" />
-              </div>
-              <div>
-                <CardTitle>Detailed Description</CardTitle>
-                <CardDescription>
-                  Additional questions for highly-rated games (rating 4 or 5)
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {DETAILED_QUESTIONS.reduce((acc: React.ReactNode[], question, index) => {
-              if (
-                question.section &&
-                (index === 0 || DETAILED_QUESTIONS[index - 1].section !== question.section)
-              ) {
-                acc.push(
-                  <div key={`section-${question.id}`} className="pt-4 first:pt-0">
-                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                      {question.section}
-                    </h4>
-                  </div>
-                );
-              }
-
-              acc.push(
-                <div key={question.id} className="space-y-2">
-                  <label className="text-sm font-medium">{question.label}</label>
-                  <Textarea
-                    value={detailedAnswers[question.id] || ""}
-                    onChange={(e) => handleDetailedAnswer(question.id, e.target.value)}
-                    placeholder={question.placeholder}
-                    className="min-h-[80px] resize-y"
-                  />
-                </div>
-              );
-
-              return acc;
-            }, [])}
-
-            {/* Generate Description Button */}
-            <div className="pt-6 border-t space-y-4">
-              <Button
-                onClick={handleGenerateDescription}
-                disabled={isGenerating}
-                className="w-full"
-                variant="secondary"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Generate Description
-                  </>
-                )}
-              </Button>
-
-              {generatedDescription && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Generated Description:</label>
-                  <Textarea
-                    value={generatedDescription}
-                    readOnly
-                    className="min-h-[300px] resize-y bg-muted/50 font-mono text-sm"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => navigator.clipboard.writeText(generatedDescription)}
-                  >
-                    Copy to Clipboard
-                  </Button>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Footer Actions */}
       <div className="mt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between pt-6 border-t gap-4">

@@ -225,10 +225,17 @@ function validFaqItems(group: FaqGroup): FaqItem[] {
 
 function buildContext(
   gameName: string,
+  controls: string,
   blocks: SeoBlock[],
   faqGroups: FaqGroup[]
 ): string {
   const parts: string[] = [];
+
+  // Controls
+  const controlsTrimmed = controls.trim();
+  if (controlsTrimmed) {
+    parts.push(`Controls:\n${controlsTrimmed}`);
+  }
 
   // Deep-content blocks
   for (const block of blocks) {
@@ -700,6 +707,7 @@ export default function GameSeoPage() {
   const router = useRouter();
 
   const [gameName, setGameName] = useState("");
+  const [controls, setControls] = useState("");
   const [blocks, setBlocks] = useState<SeoBlock[]>(DEFAULT_BLOCKS);
   const [faqGroups, setFaqGroups] = useState<FaqGroup[]>(DEFAULT_FAQ_GROUPS);
   const [generatedText, setGeneratedText] = useState("");
@@ -713,8 +721,8 @@ export default function GameSeoPage() {
   } | null>(null);
 
   const context = useMemo(
-    () => buildContext(gameName, blocks, faqGroups),
-    [gameName, blocks, faqGroups]
+    () => buildContext(gameName, controls, blocks, faqGroups),
+    [gameName, controls, blocks, faqGroups]
   );
 
   const stats = useMemo(() => {
@@ -733,6 +741,7 @@ export default function GameSeoPage() {
 
   const resetState = () => {
     setGameName("");
+    setControls("");
     setBlocks(
       DEFAULT_BLOCKS.map((b) => ({
         ...b,
@@ -759,6 +768,7 @@ export default function GameSeoPage() {
   const handleSave = useCallback(
     async (
       nameToUse: string,
+      controlsToUse: string,
       blocksToUse: SeoBlock[],
       faqGroupsToUse: FaqGroup[],
       textToUse: string,
@@ -769,6 +779,7 @@ export default function GameSeoPage() {
       const result: GameSeoResult = {
         id: resultId,
         gameName: nameToUse.trim(),
+        controls: controlsToUse.trim(),
         date: new Date().toISOString(),
         blocks: blocksToUse,
         faqGroups: faqGroupsToUse,
@@ -823,6 +834,7 @@ export default function GameSeoPage() {
 
       await handleSave(
         gameName,
+        controls,
         blocks,
         faqGroups,
         description,
@@ -838,7 +850,7 @@ export default function GameSeoPage() {
     } finally {
       setIsGenerating(false);
     }
-  }, [gameName, context, blocks, faqGroups, currentResultId, handleSave]);
+  }, [gameName, controls, context, blocks, faqGroups, currentResultId, handleSave]);
 
   const handleCopy = async () => {
     if (!generatedText) return;
@@ -908,13 +920,28 @@ export default function GameSeoPage() {
       </div>
 
       {/* Game Name */}
-      <div className="max-w-md mb-8">
-        <label className="text-sm font-medium mb-2 block">Game Name</label>
-        <Input
-          placeholder="Enter the name of the game..."
-          value={gameName}
-          onChange={(e) => setGameName(e.target.value)}
-        />
+      <div className="max-w-md mb-8 space-y-4">
+        <div>
+          <label className="text-sm font-medium mb-2 block">Game Name</label>
+          <Input
+            placeholder="Enter the name of the game..."
+            value={gameName}
+            onChange={(e) => setGameName(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium mb-2 block">Controls</label>
+          <Textarea
+            placeholder={`Desktop: WASD / arrow keys / mouse / spacebar...\nMobile: tap / swipe / hold / virtual joystick...`}
+            value={controls}
+            onChange={(e) => setControls(e.target.value)}
+            className="min-h-[100px] resize-y"
+          />
+          <p className="text-xs text-muted-foreground mt-2">
+            Укажите, как управлять игрой. Обязательно распишите и десктопные контролы
+            (клавиши, мышь), и мобильные (тапы, свайпы, виртуальные кнопки).
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">

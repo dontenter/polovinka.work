@@ -53,28 +53,6 @@ const FEATURES_CONFIG = [
   { id: "social", name: "Социальный шеринг", icon: Share2 },
 ];
 
-const DETAILED_QUESTIONS = [
-  { id: "about", label: "О чем игра? Что нужно делать?" },
-  { id: "storyline", label: "Есть ли в игре сюжетная линия?" },
-  { id: "hook", label: "Какая фишка у игры? Чем она может зацепить игроков?" },
-  { id: "bosses", label: "Есть ли боссы и чем они отличаются?" },
-  { id: "currencies", label: "Какие есть валюты и на что их тратить (обычная - золото, премиальная - кристаллы и т.д.)?" },
-  { id: "progression", label: "Как именно работает прокачка? Что нужно делать чтобы прокачиваться быстрее?" },
-  { id: "iap", label: "Есть ли внутриигровые покупки? Что можно покупать и на что влияет? Ускоряет ли донат прогресс игры?" },
-  { id: "leaderboards_q", label: "Есть ли лидерборды? Как туда попасть? Какие они есть (недельные, месячные, за все время и т.д.)?" },
-  { id: "content_elements", label: "Какие есть цепляющие элементы контента (оружие, машины, локации, скилы, отсылки к известным франшизам и т.д.)?" },
-  { id: "customization", label: "Есть ли в игре кастомизация? Можно ли настроить внешний вид героя, редактор локация, тюнинг авто и т.д.?" },
-  { id: "daily_rewards", label: "Есть ли ежедневные награды или что-то подобное, что заставляет игрока вернуться?" },
-  { id: "sound_q", label: "Желательно ли играть со звуком, чтобы лучше погрузиться в атмосферу или без звука будут трудности с прохождением?" },
-  { id: "minigames", label: "Есть ли мини игры внутри основного сюжета? Например, головоломки «три в ряд» внутри стратегии" },
-  { id: "levels_count", label: "Понятно ли какое- кол-во уровней? Сколько их? (прочерк если непонятно)" },
-  { id: "achievements", label: "Есть ли система достижений ачивок? Какие они и за что можно получить?" },
-  { id: "mp_chat", label: "Есть ли внутри игры онлайн чат? Голосовой чат?", section: "Мультиплеер" },
-  { id: "mp_realtime", label: "Игра происходит в реальном времени или асинхронно?", section: "Мультиплеер" },
-  { id: "mp_friends", label: "Можно ли играть с друзьями?", section: "Мультиплеер" },
-  { id: "mp_room_size", label: "Размер комнат, сколько игроков играет одновременно?", section: "Мультиплеер" },
-];
-
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
   return date.toLocaleDateString("en-US", {
@@ -714,53 +692,6 @@ export default function GameTestResultPage() {
           </Card>
         </div>
       </div>
-
-      {/* Detailed Questions */}
-      {Object.keys(result.detailedAnswers).length > 0 && (
-        <Card className="mt-6">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-500/10">
-                <Trophy className="h-5 w-5 text-green-500" />
-              </div>
-              <div>
-                <CardTitle>Detailed Description</CardTitle>
-                <CardDescription>Answers to additional questions</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {DETAILED_QUESTIONS.filter((q) => result.detailedAnswers[q.id]?.trim()).map(
-              (question) => (
-                <div key={question.id} className="space-y-2">
-                  <label className="text-sm font-medium">{question.label}</label>
-                  <Textarea
-                    value={result.detailedAnswers[question.id]}
-                    readOnly
-                    className="min-h-[80px] resize-none bg-muted/50"
-                  />
-                </div>
-              )
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Generated Description */}
-      {result.generatedDescription && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Generated Description</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={result.generatedDescription}
-              readOnly
-              className="min-h-[300px] resize-none bg-muted/50 font-mono text-sm"
-            />
-          </CardContent>
-        </Card>
-      )}
 
       {/* Footer */}
       <div className="mt-8 flex justify-center">

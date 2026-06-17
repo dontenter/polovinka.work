@@ -242,6 +242,20 @@ export default function GameSeoResultPage() {
 
       {/* Source Data */}
       <div className="space-y-6">
+        {result.controls && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-accent" />
+                Controls
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.controls}</p>
+            </CardContent>
+          </Card>
+        )}
+
         {blocksWithContent.length > 0 && (
           <Card>
             <CardHeader>
