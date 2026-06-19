@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   FileText,
   ArrowLeft,
@@ -18,6 +18,7 @@ import {
   AlertCircle,
   MessageCircleQuestion,
   Edit3,
+  Pencil,
   X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -33,6 +34,7 @@ import {
 import { Toast } from "@/components/ui/toast";
 import {
   saveGameSeoResult,
+  getGameSeoResultById,
   generateId,
   type SeoBlock,
   type SeoBlockItem,
@@ -181,6 +183,56 @@ const FAQ_PRESETS: Record<string, string[]> = {
     "Есть ли онбординг в игре? Что там?",
   ],
 };
+
+function mergeLoadedBlocks(loadedBlocks: SeoBlock[]): SeoBlock[] {
+  const loadedMap = new Map(loadedBlocks.map((b) => [b.id, b]));
+  const merged = DEFAULT_BLOCKS.map((defaultBlock) => {
+    const loaded = loadedMap.get(defaultBlock.id);
+    if (!loaded) {
+      return {
+        ...defaultBlock,
+        items: [],
+        meta: defaultBlock.meta ? { ...defaultBlock.meta } : undefined,
+      };
+    }
+    return {
+      ...defaultBlock,
+      ...loaded,
+      meta:
+        defaultBlock.meta || loaded.meta
+          ? { ...defaultBlock.meta, ...loaded.meta }
+          : undefined,
+    };
+  });
+
+  // Preserve any custom blocks that are not in the current defaults.
+  const defaultIds = new Set(DEFAULT_BLOCKS.map((b) => b.id));
+  const extra = loadedBlocks.filter((b) => !defaultIds.has(b.id));
+  return [...merged, ...extra];
+}
+
+function mergeLoadedFaqGroups(loadedGroups: FaqGroup[]): FaqGroup[] {
+  const loadedMap = new Map(loadedGroups.map((g) => [g.id, g]));
+  const autoConfirm = (item: FaqItem): FaqItem => ({
+    ...item,
+    confirmed:
+      item.confirmed ||
+      (!isEmptyAnswer(item.question) && !isEmptyAnswer(item.answer)),
+  });
+
+  const merged = DEFAULT_FAQ_GROUPS.map((defaultGroup) => {
+    const loaded = loadedMap.get(defaultGroup.id);
+    return loaded
+      ? { ...defaultGroup, items: loaded.items.map(autoConfirm) }
+      : { ...defaultGroup, items: [] };
+  });
+
+  const defaultIds = new Set(DEFAULT_FAQ_GROUPS.map((g) => g.id));
+  const extra = loadedGroups
+    .filter((g) => !defaultIds.has(g.id))
+    .map((g) => ({ ...g, items: g.items.map(autoConfirm) }));
+  return [...merged, ...extra];
+}
 
 // ==================== HELPERS ====================
 
@@ -703,8 +755,9 @@ function FaqGroupCard({
 
 // ==================== MAIN PAGE ====================
 
-export default function GameSeoPage() {
+function GameSeoPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [gameName, setGameName] = useState("");
   const [controls, setControls] = useState("");
@@ -719,6 +772,7 @@ export default function GameSeoPage() {
     message: string;
     type: "success" | "error";
   } | null>(null);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
 
   const context = useMemo(
     () => buildContext(gameName, controls, blocks, faqGroups),
@@ -730,6 +784,39 @@ export default function GameSeoPage() {
     const totalFaq = faqGroups.reduce((sum, g) => sum + validFaqItems(g).length, 0);
     return { activeBlocks, totalFaq };
   }, [blocks, faqGroups]);
+
+  // Load an existing result when ?id= is present
+  useEffect(() => {
+    const editId = searchParams.get("id");
+    if (!editId) {
+      setIsLoadingEdit(false);
+      return;
+    }
+
+    setIsLoadingEdit(true);
+    getGameSeoResultById(editId)
+      .then((result) => {
+        if (!result) {
+          setToast({ message: "Результат не найден", type: "error" });
+          return;
+        }
+        setGameName(result.gameName);
+        setControls(result.controls || "");
+        setBlocks(mergeLoadedBlocks(result.blocks));
+        setFaqGroups(mergeLoadedFaqGroups(result.faqGroups));
+        setGeneratedText(result.generatedText);
+        setCurrentResultId(result.id);
+      })
+      .catch((err) => {
+        setToast({
+          message: err instanceof Error ? err.message : "Failed to load result",
+          type: "error",
+        });
+      })
+      .finally(() => {
+        setIsLoadingEdit(false);
+      });
+  }, [searchParams]);
 
   const handleBlockChange = (index: number, updated: SeoBlock) => {
     setBlocks((prev) => prev.map((b, i) => (i === index ? updated : b)));
@@ -758,11 +845,13 @@ export default function GameSeoPage() {
   const handleReset = () => {
     if (confirm("Сбросить всё и начать заново?")) {
       resetState();
+      router.replace("/lab/game-seo");
     }
   };
 
   const handleNewGame = () => {
     resetState();
+    router.replace("/lab/game-seo");
   };
 
   const handleSave = useCallback(
@@ -852,6 +941,31 @@ export default function GameSeoPage() {
     }
   }, [gameName, controls, context, blocks, faqGroups, currentResultId, handleSave]);
 
+  const handleManualSave = useCallback(async () => {
+    if (!gameName.trim()) {
+      setToast({ message: "Введите название игры", type: "error" });
+      return;
+    }
+
+    try {
+      await handleSave(
+        gameName,
+        controls,
+        blocks,
+        faqGroups,
+        generatedText,
+        currentResultId
+      );
+      setToast({ message: "Изменения сохранены", type: "success" });
+    } catch (error) {
+      console.error("Manual save error:", error);
+      setToast({
+        message: "Ошибка при сохранении: " + (error as Error).message,
+        type: "error",
+      });
+    }
+  }, [gameName, controls, blocks, faqGroups, generatedText, currentResultId, handleSave]);
+
   const handleCopy = async () => {
     if (!generatedText) return;
     await navigator.clipboard.writeText(generatedText);
@@ -878,9 +992,14 @@ export default function GameSeoPage() {
             <p className="text-sm font-medium text-muted-foreground tracking-widest uppercase mb-2">
               Lab
             </p>
-            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground flex items-center gap-3">
+            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground flex items-center gap-3 flex-wrap">
               <FileText className="h-8 w-8 sm:h-9 sm:w-9 text-accent" />
               Game SEO Text
+              {currentResultId && (
+                <Badge variant="outline" className="text-sm font-normal px-3 py-1">
+                  Редактирование
+                </Badge>
+              )}
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -1020,11 +1139,26 @@ export default function GameSeoPage() {
                   )}
                 </Button>
 
+                <Button
+                  variant="secondary"
+                  onClick={handleManualSave}
+                  disabled={isSaving || isGenerating || isLoadingEdit || !gameName.trim()}
+                  className="w-full"
+                >
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Pencil className="h-4 w-4 mr-2" />
+                  )}
+                  Сохранить изменения
+                </Button>
+
                 {generatedText && (
                   <div className="space-y-2 pt-2">
                     <Textarea
                       value={generatedText}
-                      readOnly
+                      readOnly={!currentResultId}
+                      onChange={(e) => setGeneratedText(e.target.value)}
                       className="min-h-[500px] resize-y bg-muted/50 font-mono text-sm"
                     />
                     <Button
@@ -1083,5 +1217,20 @@ export default function GameSeoPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function GameSeoPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container max-w-6xl mx-auto px-4 py-12 text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+          <p className="mt-4 text-muted-foreground">Loading editor...</p>
+        </div>
+      }
+    >
+      <GameSeoPageContent />
+    </Suspense>
   );
 }

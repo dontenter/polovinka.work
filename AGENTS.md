@@ -196,7 +196,10 @@ node -e "console.log(require('crypto').createHash('sha256').update('YOUR_SALT' +
 
 ### Vercel Blob
 
-- SEO results: `{prod|dev}/game-seo-results/{id}.json`
+- SEO results:
+  - Current manifest: `{prod|dev}/game-seo-results/{id}/manifest.json`
+  - Version snapshots: `{prod|dev}/game-seo-results/{id}/versions/{versionId}.json`
+  - Legacy single-blob results (`{id}.json`) are still readable and are auto-migrated to the manifest format on the first edit.
 - Testing results: `{prod|dev}/game-testing-results/{id}.json`
 - `NODE_ENV === "production"` uses the `prod` prefix; otherwise `dev`.
 - Listing fetches all blobs and filters/sorts in memory; pagination is applied after the full fetch.
@@ -247,6 +250,8 @@ node -e "console.log(require('crypto').createHash('sha256').update('YOUR_SALT' +
 - Editing prompts in `app/api/generate-*/route.ts`, `app/api/enhance-feedback/route.ts`, or `app/api/translate-feedback/route.ts` changes the AI output. Keep the existing "do not invent facts" / "preserve labels" / "no markdown" constraints.
 - The Game Testing rating score is computed client-side in `app/lab/game-testing/page.tsx` from weighted criteria. If you add/remove criteria, update both the form and the history/detail pages.
 - The Game SEO `buildContext` function is duplicated/shared between the editor and the detail view. Keep the serialization format stable because the prompt depends on exact English labels and `Q:`/`A:` markers.
+- Game SEO results are versioned: every save creates a new immutable version snapshot and updates a manifest. The detail page shows a timeline of versions and a human-readable diff. Editing an existing result loads it into `/lab/game-seo?id={id}` and appends a new version on save.
+- Game SEO results have a `qcChecked` flag stored in the manifest. It can be toggled from the history list and is persisted without creating a new version.
 - `app/api/fetch-icon` and `app/api/upload-image` require Node.js; they will not work in Edge runtime.
 
 ---

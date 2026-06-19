@@ -10,6 +10,7 @@ import {
   Calendar,
   Trash2,
   Eye,
+  Pencil,
   Loader2,
   Lock,
   X,
@@ -19,9 +20,11 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   deleteGameSeoResult,
   getGameSeoResults,
+  updateGameSeoQcChecked,
   type GameSeoListItem,
 } from "@/lib/game-seo-storage";
 
@@ -107,6 +110,7 @@ export default function GameSeoHistoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [updatingQcId, setUpdatingQcId] = useState<string | null>(null);
 
   // Password modal state
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -219,6 +223,48 @@ export default function GameSeoHistoryPage() {
     setPendingDeleteId(null);
     setPasswordInput("");
     setPasswordError(false);
+  };
+
+  const handleToggleQc = async (
+    result: GameSeoListItem,
+    checked: boolean,
+    e: React.MouseEvent | React.ChangeEvent
+  ) => {
+    e.stopPropagation();
+    if (updatingQcId === result.id) return;
+
+    const previousValue = result.qcChecked === true;
+    const newValue = checked;
+    if (newValue === previousValue) return;
+
+    // Optimistic update
+    setDisplayedResults((prev) =>
+      prev.map((r) => (r.id === result.id ? { ...r, qcChecked: newValue } : r))
+    );
+    setUpdatingQcId(result.id);
+
+    try {
+      await updateGameSeoQcChecked(result.id, newValue);
+      // Also update cache so pagination doesn't revert the value
+      cacheRef.current.forEach((items, key) => {
+        cacheRef.current.set(
+          key,
+          items.map((r) =>
+            r.id === result.id ? { ...r, qcChecked: newValue } : r
+          )
+        );
+      });
+    } catch (err) {
+      // Revert on error
+      setDisplayedResults((prev) =>
+        prev.map((r) =>
+          r.id === result.id ? { ...r, qcChecked: previousValue } : r
+        )
+      );
+      alert(err instanceof Error ? err.message : "Failed to update QC flag");
+    } finally {
+      setUpdatingQcId(null);
+    }
   };
 
   return (
@@ -343,6 +389,23 @@ export default function GameSeoHistoryPage() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
+                            <label
+                              className="flex items-center gap-2 cursor-pointer select-none"
+                              onClick={(e) => e.stopPropagation()}
+                              title="QC проверен"
+                            >
+                              <Checkbox
+                                checked={result.qcChecked === true}
+                                disabled={updatingQcId === result.id}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) =>
+                                  handleToggleQc(result, e.target.checked, e)
+                                }
+                              />
+                              <span className="text-sm text-muted-foreground hidden md:inline">
+                                QC
+                              </span>
+                            </label>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -353,6 +416,17 @@ export default function GameSeoHistoryPage() {
                             >
                               <Eye className="h-4 w-4 mr-2" />
                               View
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/lab/game-seo?id=${result.id}`);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit
                             </Button>
                             <Button
                               variant="ghost"

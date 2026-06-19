@@ -34,6 +34,19 @@ export type FaqGroup = {
   items: FaqItem[];
 };
 
+export type SeoVersionChange = {
+  field: string;
+  label: string;
+  description: string;
+};
+
+export type SeoVersionMeta = {
+  versionId: string;
+  createdAt: string;
+  createdFrom?: string;
+  changes: SeoVersionChange[];
+};
+
 export type GameSeoResult = {
   id: string;
   gameName: string;
@@ -42,6 +55,10 @@ export type GameSeoResult = {
   blocks: SeoBlock[];
   faqGroups: FaqGroup[];
   generatedText: string;
+  qcChecked?: boolean;
+  versionId?: string;
+  versions?: SeoVersionMeta[];
+  currentVersionId?: string;
 };
 
 // Lightweight shape returned by the paginated list endpoint.
@@ -49,9 +66,27 @@ export type GameSeoListItem = {
   id: string;
   gameName: string;
   date: string;
+  qcChecked?: boolean;
 };
 
-export async function saveGameSeoResult(result: GameSeoResult): Promise<void> {
+export type SaveGameSeoResultResponse = {
+  success: boolean;
+  id: string;
+  versionId: string;
+  date: string;
+};
+
+export type GameSeoVersionsResponse = {
+  id: string;
+  gameName: string;
+  date: string;
+  currentVersionId: string;
+  versions: SeoVersionMeta[];
+};
+
+export async function saveGameSeoResult(
+  result: GameSeoResult
+): Promise<SaveGameSeoResultResponse> {
   const response = await fetch("/api/game-seo", {
     method: "POST",
     headers: {
@@ -70,6 +105,8 @@ export async function saveGameSeoResult(result: GameSeoResult): Promise<void> {
     }
     throw new Error(errorMessage);
   }
+
+  return (await response.json()) as SaveGameSeoResultResponse;
 }
 
 export interface PaginatedResults<T = GameSeoResult> {
@@ -99,8 +136,15 @@ export async function getGameSeoResults(
   return await response.json();
 }
 
-export async function getGameSeoResultById(id: string): Promise<GameSeoResult | null> {
-  const response = await fetch(`/api/game-seo/${id}`);
+export async function getGameSeoResultById(
+  id: string,
+  versionId?: string
+): Promise<GameSeoResult | null> {
+  const params = new URLSearchParams();
+  if (versionId) params.set("versionId", versionId);
+
+  const query = params.toString();
+  const response = await fetch(`/api/game-seo/${id}${query ? `?${query}` : ""}`);
 
   if (!response.ok) {
     if (response.status === 404) {
@@ -111,6 +155,38 @@ export async function getGameSeoResultById(id: string): Promise<GameSeoResult | 
   }
 
   return await response.json();
+}
+
+export async function getGameSeoVersions(
+  id: string
+): Promise<GameSeoVersionsResponse | null> {
+  const response = await fetch(`/api/game-seo/${id}/versions`);
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      return null;
+    }
+    const error = await response.json();
+    throw new Error(error.error || "Failed to fetch versions");
+  }
+
+  return await response.json();
+}
+
+export async function updateGameSeoQcChecked(
+  id: string,
+  qcChecked: boolean
+): Promise<void> {
+  const response = await fetch(`/api/game-seo/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ qcChecked }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to update QC flag");
+  }
 }
 
 export async function deleteGameSeoResult(id: string): Promise<void> {
