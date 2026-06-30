@@ -411,7 +411,7 @@ export default function GameSeoHistoryPage() {
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                router.push(`/lab/game-seo/history/${result.id}`);
+                                window.open(`/lab/game-seo/history/${result.id}`, "_blank");
                               }}
                             >
                               <Eye className="h-4 w-4 mr-2" />
