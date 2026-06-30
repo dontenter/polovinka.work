@@ -56,6 +56,8 @@ export type GameSeoResult = {
   faqGroups: FaqGroup[];
   generatedText: string;
   qcChecked?: boolean;
+  fullSeoBefore?: string;
+  fullSeoAfter?: string;
   versionId?: string;
   versions?: SeoVersionMeta[];
   currentVersionId?: string;
@@ -67,6 +69,8 @@ export type GameSeoListItem = {
   gameName: string;
   date: string;
   qcChecked?: boolean;
+  hasFullSeoBefore?: boolean;
+  hasFullSeoAfter?: boolean;
 };
 
 export type SaveGameSeoResultResponse = {
@@ -186,6 +190,23 @@ export async function updateGameSeoQcChecked(
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to update QC flag");
+  }
+}
+
+export async function updateGameSeoFullSeo(
+  id: string,
+  fullSeoBefore?: string,
+  fullSeoAfter?: string
+): Promise<void> {
+  const response = await fetch(`/api/game-seo/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fullSeoBefore, fullSeoAfter }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to update Full SEO fields");
   }
 }
 

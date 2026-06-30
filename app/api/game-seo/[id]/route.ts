@@ -12,6 +12,8 @@ const RESULTS_PREFIX = `${BLOB_PREFIX}/game-seo-results`;
 
 interface GameSeoIndexEntry extends BaseIndexEntry {
   qcChecked?: boolean;
+  hasFullSeoBefore?: boolean;
+  hasFullSeoAfter?: boolean;
 }
 
 function mapBlobToEntry(
@@ -29,6 +31,12 @@ function mapBlobToEntry(
     gameName: result.gameName,
     date: result.date,
     qcChecked: (result as GameSeoResult | GameSeoManifest).qcChecked === true,
+    hasFullSeoBefore:
+      typeof (result as GameSeoManifest).fullSeoBefore === "string" &&
+      (result as GameSeoManifest).fullSeoBefore!.trim() !== "",
+    hasFullSeoAfter:
+      typeof (result as GameSeoManifest).fullSeoAfter === "string" &&
+      (result as GameSeoManifest).fullSeoAfter!.trim() !== "",
     url: blob.url,
     pathname: blob.pathname,
   };
@@ -77,6 +85,8 @@ export async function GET(
 
       return NextResponse.json({
         ...snapshot,
+        fullSeoBefore: manifest.fullSeoBefore,
+        fullSeoAfter: manifest.fullSeoAfter,
         versions: manifest.versions,
         currentVersionId: manifest.currentVersionId,
         versionId,
@@ -105,21 +115,67 @@ export async function GET(
   }
 }
 
-// PATCH - Toggle the QC checked flag without creating a new version
+// PATCH - Update lightweight fields (QC flag, Full SEO Before/After)
+// without creating a new version.
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const { qcChecked } = (await request.json()) as { qcChecked?: boolean };
-    const value = qcChecked === true;
+    const payload = (await request.json()) as {
+      qcChecked?: boolean;
+      fullSeoBefore?: string;
+      fullSeoAfter?: string;
+    };
+
+    const qcCheckedValue =
+      typeof payload.qcChecked === "boolean" ? payload.qcChecked : undefined;
+    const fullSeoBeforeValue =
+      typeof payload.fullSeoBefore === "string"
+        ? payload.fullSeoBefore.trim() || undefined
+        : undefined;
+    const fullSeoAfterValue =
+      typeof payload.fullSeoAfter === "string"
+        ? payload.fullSeoAfter.trim() || undefined
+        : undefined;
 
     const manifestPath = `${RESULTS_PREFIX}/${id}/manifest.json`;
     const manifest = await fetchBlobByPathname<GameSeoManifest>(manifestPath);
 
     if (manifest) {
-      const updatedManifest: GameSeoManifest = { ...manifest, qcChecked: value };
+      const updatedManifest: GameSeoManifest = {
+        ...manifest,
+        ...(qcCheckedValue !== undefined && { qcChecked: qcCheckedValue }),
+        ...(typeof payload.fullSeoBefore === "string" && {
+          fullSeoBefore: fullSeoBeforeValue,
+        }),
+        ...(typeof payload.fullSeoAfter === "string" && {
+          fullSeoAfter: fullSeoAfterValue,
+        }),
+      };
+
+      // Keep the current version snapshot in sync so GET returns consistent data.
+      const snapshotPath = `${RESULTS_PREFIX}/${id}/versions/${manifest.currentVersionId}.json`;
+      const snapshot = await fetchBlobByPathname<GameSeoResult>(snapshotPath);
+      if (snapshot) {
+        const updatedSnapshot: GameSeoResult = {
+          ...snapshot,
+          ...(qcCheckedValue !== undefined && { qcChecked: qcCheckedValue }),
+          ...(typeof payload.fullSeoBefore === "string" && {
+            fullSeoBefore: fullSeoBeforeValue,
+          }),
+          ...(typeof payload.fullSeoAfter === "string" && {
+            fullSeoAfter: fullSeoAfterValue,
+          }),
+        };
+        await put(snapshotPath, JSON.stringify(updatedSnapshot), {
+          access: "public",
+          contentType: "application/json",
+          allowOverwrite: true,
+        });
+      }
+
       const blob = await put(manifestPath, JSON.stringify(updatedManifest), {
         access: "public",
         contentType: "application/json",
@@ -134,14 +190,25 @@ export async function PATCH(
       if (entryIndex !== -1) {
         entries[entryIndex] = {
           ...entries[entryIndex],
-          qcChecked: value,
+          ...(qcCheckedValue !== undefined && { qcChecked: qcCheckedValue }),
           url: blob.url,
           pathname: blob.pathname,
+          hasFullSeoBefore:
+            typeof updatedManifest.fullSeoBefore === "string" &&
+            updatedManifest.fullSeoBefore.trim() !== "",
+          hasFullSeoAfter:
+            typeof updatedManifest.fullSeoAfter === "string" &&
+            updatedManifest.fullSeoAfter.trim() !== "",
         };
         await writeIndex(RESULTS_PREFIX, entries);
       }
 
-      return NextResponse.json({ success: true, qcChecked: value });
+      return NextResponse.json({
+        success: true,
+        qcChecked: updatedManifest.qcChecked,
+        fullSeoBefore: updatedManifest.fullSeoBefore,
+        fullSeoAfter: updatedManifest.fullSeoAfter,
+      });
     }
 
     // Fallback to old single-blob format.
@@ -154,7 +221,16 @@ export async function PATCH(
       );
     }
 
-    const updatedResult: GameSeoResult = { ...oldBlob, qcChecked: value };
+    const updatedResult: GameSeoResult = {
+      ...oldBlob,
+      ...(qcCheckedValue !== undefined && { qcChecked: qcCheckedValue }),
+      ...(typeof payload.fullSeoBefore === "string" && {
+        fullSeoBefore: fullSeoBeforeValue,
+      }),
+      ...(typeof payload.fullSeoAfter === "string" && {
+        fullSeoAfter: fullSeoAfterValue,
+      }),
+    };
     const blob = await put(oldPath, JSON.stringify(updatedResult), {
       access: "public",
       contentType: "application/json",
@@ -169,18 +245,29 @@ export async function PATCH(
     if (entryIndex !== -1) {
       entries[entryIndex] = {
         ...entries[entryIndex],
-        qcChecked: value,
+        ...(qcCheckedValue !== undefined && { qcChecked: qcCheckedValue }),
         url: blob.url,
         pathname: blob.pathname,
+        hasFullSeoBefore:
+          typeof updatedResult.fullSeoBefore === "string" &&
+          updatedResult.fullSeoBefore.trim() !== "",
+        hasFullSeoAfter:
+          typeof updatedResult.fullSeoAfter === "string" &&
+          updatedResult.fullSeoAfter.trim() !== "",
       };
       await writeIndex(RESULTS_PREFIX, entries);
     }
 
-    return NextResponse.json({ success: true, qcChecked: value });
+    return NextResponse.json({
+      success: true,
+      qcChecked: updatedResult.qcChecked,
+      fullSeoBefore: updatedResult.fullSeoBefore,
+      fullSeoAfter: updatedResult.fullSeoAfter,
+    });
   } catch (error) {
-    console.error("Error updating game SEO QC flag:", error);
+    console.error("Error updating game SEO fields:", error);
     return NextResponse.json(
-      { error: "Failed to update QC flag" },
+      { error: "Failed to update fields" },
       { status: 500 }
     );
   }

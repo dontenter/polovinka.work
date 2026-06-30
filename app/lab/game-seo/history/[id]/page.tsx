@@ -18,6 +18,8 @@ import {
   GitCompare,
   ChevronDown,
   ChevronUp,
+  Save,
+  ExternalLink,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   getGameSeoResultById,
   getGameSeoVersions,
+  updateGameSeoFullSeo,
   type GameSeoResult,
   type SeoBlock,
   type FaqGroup,
@@ -146,6 +149,10 @@ export default function GameSeoResultPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [fullSeoBefore, setFullSeoBefore] = useState("");
+  const [fullSeoAfter, setFullSeoAfter] = useState("");
+  const [savingFullSeo, setSavingFullSeo] = useState(false);
+  const [fullSeoMessage, setFullSeoMessage] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadResult() {
@@ -159,6 +166,8 @@ export default function GameSeoResultPage() {
             getGameSeoVersions(id),
           ]);
           setResult(data);
+          setFullSeoBefore(data?.fullSeoBefore || "");
+          setFullSeoAfter(data?.fullSeoAfter || "");
           if (versionsData) {
             setVersions(versionsData.versions);
             setCurrentVersionId(versionsData.currentVersionId);
@@ -185,6 +194,30 @@ export default function GameSeoResultPage() {
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSaveFullSeo = async () => {
+    const id = params.id as string;
+    if (!id) return;
+    setSavingFullSeo(true);
+    setFullSeoMessage(null);
+    try {
+      await updateGameSeoFullSeo(id, fullSeoBefore, fullSeoAfter);
+      setFullSeoMessage("Сохранено");
+      setTimeout(() => setFullSeoMessage(null), 3000);
+    } catch (err) {
+      setFullSeoMessage(
+        err instanceof Error ? err.message : "Не удалось сохранить"
+      );
+    } finally {
+      setSavingFullSeo(false);
+    }
+  };
+
+  const handlePreviewFullSeo = (field: "before" | "after") => {
+    const id = params.id as string;
+    if (!id) return;
+    window.open(`/lab/game-seo/preview?id=${id}&field=${field}`, "_blank");
   };
 
   const handleViewVersion = async (versionId: string) => {
@@ -540,6 +573,91 @@ export default function GameSeoResultPage() {
             </CardContent>
           </Card>
         )}
+      </div>
+
+      {/* Full SEO Before / After */}
+      <div className="mt-8 space-y-6">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-accent/10">
+                <FileText className="h-5 w-5 text-accent" />
+              </div>
+              <div>
+                <CardTitle>Full SEO Before / After</CardTitle>
+                <CardDescription>
+                  Полные SEO тексты в HTML-формате для сравнения и публикации
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Full SEO Before</label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePreviewFullSeo("before")}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Просмотр
+                </Button>
+              </div>
+              <Textarea
+                value={fullSeoBefore}
+                onChange={(e) => setFullSeoBefore(e.target.value)}
+                placeholder="Вставьте HTML SEO текста до..."
+                className="min-h-[200px] resize-y bg-muted/50 font-mono text-sm"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Full SEO After</label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePreviewFullSeo("after")}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Просмотр
+                </Button>
+              </div>
+              <Textarea
+                value={fullSeoAfter}
+                onChange={(e) => setFullSeoAfter(e.target.value)}
+                placeholder="Вставьте HTML SEO текста после..."
+                className="min-h-[200px] resize-y bg-muted/50 font-mono text-sm"
+              />
+            </div>
+
+            <Button
+              onClick={handleSaveFullSeo}
+              disabled={savingFullSeo}
+              className="w-full gap-2"
+            >
+              {savingFullSeo ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Сохранить Full SEO
+            </Button>
+            {fullSeoMessage && (
+              <p
+                className={cn(
+                  "text-sm text-center",
+                  fullSeoMessage === "Сохранено"
+                    ? "text-green-600"
+                    : "text-red-600"
+                )}
+              >
+                {fullSeoMessage}
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Footer */}

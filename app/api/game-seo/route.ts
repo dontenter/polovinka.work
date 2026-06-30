@@ -11,6 +11,8 @@ const RESULTS_PREFIX = `${BLOB_PREFIX}/game-seo-results`;
 
 interface GameSeoIndexEntry extends BaseIndexEntry {
   qcChecked?: boolean;
+  hasFullSeoBefore?: boolean;
+  hasFullSeoAfter?: boolean;
 }
 
 export type SeoBlockItem = {
@@ -69,6 +71,8 @@ export type GameSeoResult = {
   faqGroups: FaqGroup[];
   generatedText: string;
   qcChecked?: boolean;
+  fullSeoBefore?: string;
+  fullSeoAfter?: string;
   versionId?: string;
   versions?: SeoVersionMeta[];
   currentVersionId?: string;
@@ -81,6 +85,8 @@ export type GameSeoManifest = {
   currentVersionId: string;
   versions: SeoVersionMeta[];
   qcChecked?: boolean;
+  fullSeoBefore?: string;
+  fullSeoAfter?: string;
 };
 
 function mapBlobToEntry(
@@ -99,6 +105,12 @@ function mapBlobToEntry(
     gameName: result.gameName,
     date: result.date,
     qcChecked: (result as GameSeoResult | GameSeoManifest).qcChecked === true,
+    hasFullSeoBefore:
+      typeof (result as GameSeoManifest).fullSeoBefore === "string" &&
+      (result as GameSeoManifest).fullSeoBefore!.trim() !== "",
+    hasFullSeoAfter:
+      typeof (result as GameSeoManifest).fullSeoAfter === "string" &&
+      (result as GameSeoManifest).fullSeoAfter!.trim() !== "",
     url: blob.url,
     pathname: blob.pathname,
   };
@@ -217,6 +229,26 @@ function summarizeChanges(
     });
   }
 
+  if ((prev.fullSeoBefore || "") !== (next.fullSeoBefore || "")) {
+    changes.push({
+      field: "fullSeoBefore",
+      label: "Full SEO Before",
+      description: next.fullSeoBefore?.trim()
+        ? "Добавлен или изменён"
+        : "Удалён",
+    });
+  }
+
+  if ((prev.fullSeoAfter || "") !== (next.fullSeoAfter || "")) {
+    changes.push({
+      field: "fullSeoAfter",
+      label: "Full SEO After",
+      description: next.fullSeoAfter?.trim()
+        ? "Добавлен или изменён"
+        : "Удалён",
+    });
+  }
+
   const prevBlocks = new Map(prev.blocks.map((b) => [b.id, b]));
   const nextBlocks = new Map(next.blocks.map((b) => [b.id, b]));
 
@@ -332,7 +364,16 @@ function summarizeChanges(
 export async function POST(request: NextRequest) {
   try {
     const payload = (await request.json()) as GameSeoResult;
-    const { id, gameName, controls, blocks, faqGroups, generatedText } = payload;
+    const {
+      id,
+      gameName,
+      controls,
+      blocks,
+      faqGroups,
+      generatedText,
+      fullSeoBefore: payloadFullSeoBefore,
+      fullSeoAfter: payloadFullSeoAfter,
+    } = payload;
 
     if (!id || !gameName) {
       console.error("Missing required fields:", { id, gameName });
@@ -398,6 +439,11 @@ export async function POST(request: NextRequest) {
 
     const previousQc = manifest?.qcChecked ?? previousSnapshot?.qcChecked ?? false;
 
+    // Preserve existing Full SEO fields when an editor save doesn't send them.
+    const fullSeoBefore =
+      payloadFullSeoBefore ?? previousSnapshot?.fullSeoBefore;
+    const fullSeoAfter = payloadFullSeoAfter ?? previousSnapshot?.fullSeoAfter;
+
     const draftSnapshot: GameSeoResult = {
       id,
       gameName: gameName.trim(),
@@ -407,6 +453,8 @@ export async function POST(request: NextRequest) {
       faqGroups,
       generatedText,
       qcChecked: previousQc,
+      fullSeoBefore: fullSeoBefore?.trim(),
+      fullSeoAfter: fullSeoAfter?.trim(),
       versionId: newVersionId,
     };
 
@@ -448,6 +496,8 @@ export async function POST(request: NextRequest) {
       currentVersionId: newVersionId,
       versions,
       qcChecked,
+      fullSeoBefore: fullSeoBefore?.trim(),
+      fullSeoAfter: fullSeoAfter?.trim(),
     };
 
     const versionBlob = await put(
@@ -489,6 +539,10 @@ export async function POST(request: NextRequest) {
       gameName: gameName.trim(),
       date: newDate,
       qcChecked,
+      hasFullSeoBefore:
+        typeof fullSeoBefore === "string" && fullSeoBefore.trim() !== "",
+      hasFullSeoAfter:
+        typeof fullSeoAfter === "string" && fullSeoAfter.trim() !== "",
       url: manifestBlob.url,
       pathname: manifestBlob.pathname,
     };

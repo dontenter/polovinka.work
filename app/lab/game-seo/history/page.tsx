@@ -21,6 +21,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
   deleteGameSeoResult,
   getGameSeoResults,
@@ -383,9 +384,21 @@ export default function GameSeoHistoryPage() {
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                           <div className="flex-1">
                             <h3 className="text-lg font-semibold">{result.gameName}</h3>
-                            <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                              <Calendar className="h-4 w-4" />
-                              {formatDateTime(result.date)}
+                            <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-4 w-4" />
+                                {formatDateTime(result.date)}
+                              </span>
+                              {result.hasFullSeoBefore && (
+                                <Badge variant="success" className="text-xs">
+                                  Full SEO Before
+                                </Badge>
+                              )}
+                              {result.hasFullSeoAfter && (
+                                <Badge variant="success" className="text-xs">
+                                  Full SEO After
+                                </Badge>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">

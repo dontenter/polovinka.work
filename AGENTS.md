@@ -200,6 +200,7 @@ node -e "console.log(require('crypto').createHash('sha256').update('YOUR_SALT' +
   - Current manifest: `{prod|dev}/game-seo-results/{id}/manifest.json`
   - Version snapshots: `{prod|dev}/game-seo-results/{id}/versions/{versionId}.json`
   - Legacy single-blob results (`{id}.json`) are still readable and are auto-migrated to the manifest format on the first edit.
+  - Optional `fullSeoBefore` and `fullSeoAfter` HTML fields are stored in both the manifest and the current version snapshot. They are edited from the detail page (`PATCH /api/game-seo/[id]`) without creating a new version, and existing values are preserved when an older result is re-saved from the editor.
 - Testing results: `{prod|dev}/game-testing-results/{id}.json`
 - `NODE_ENV === "production"` uses the `prod` prefix; otherwise `dev`.
 - Listing fetches all blobs and filters/sorts in memory; pagination is applied after the full fetch.
