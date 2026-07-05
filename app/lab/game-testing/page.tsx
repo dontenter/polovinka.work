@@ -128,7 +128,6 @@ const RATING_CRITERIA: RatingCriterion[] = [
   { id: "no_annoying", label: "Есть что-то сильно раздражающее или мешающее игре?", weight: 2, checked: false },
   { id: "ai_made", label: "Игра полностью сделана на ИИ", weight: 2, checked: false },
   { id: "smart_ads", label: "В игре можно безболезненно вставить Smart Ads?", weight: 1, checked: false },
-  { id: "anzu_ads", label: "В игре применима реклама от Anzu?", weight: 1, checked: false },
 ];
 
 // ==================== COMPONENTS ====================
@@ -1349,7 +1348,7 @@ export default function GameTestingPage() {
   }, [basicChecks, features]);
 
   // IDs of criteria excluded from final score calculation
-  const EXCLUDED_CRITERIA_IDS = ["smart_ads", "anzu_ads"];
+  const EXCLUDED_CRITERIA_IDS = ["smart_ads"];
   const NEGATIVE_CRITERIA_IDS = ["no_annoying", "ai_made"];
 
   // Calculate final rating score
