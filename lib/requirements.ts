@@ -43,6 +43,7 @@ export const REQUIREMENT_ID_MAP: Record<number, string> = {
   22: "iap_reload",
   23: "iap_non_consumable",
   24: "social_toggle",
+  25: "no_ads",
 };
 
 // Reverse map from check ID to requirement ID
@@ -94,74 +95,96 @@ export function generateFeedback(
 
   const lines: string[] = [];
   const recommendationLines: string[] = existingRecommendations ? [...existingRecommendations] : [];
-  
-  // Group issues by requirement
-  const groupedByRequirement = selectedIssues.reduce((acc, issue) => {
-    if (!acc[issue.requirementId]) {
-      acc[issue.requirementId] = [];
+
+  // Feature checks reuse the same requirement_en title across several
+  // requirement IDs (e.g. Leaderboards, In-App Purchases). We group by that
+  // shared English title so all related issues appear under one heading.
+  type FeedbackGroup = {
+    title: string;
+    bugIssues: string[];
+    failedCheckLabels: string[];
+    hasGenericFailedCheck: boolean;
+  };
+
+  const groups: Record<string, FeedbackGroup> = {};
+
+  const getGroup = (title: string): FeedbackGroup => {
+    if (!groups[title]) {
+      groups[title] = {
+        title,
+        bugIssues: [],
+        failedCheckLabels: [],
+        hasGenericFailedCheck: false,
+      };
     }
-    acc[issue.requirementId].push(issue.issueIndex);
-    return acc;
-  }, {} as Record<number, number[]>);
+    return groups[title];
+  };
 
-  // Track which requirements we've already added (to avoid duplicates with failedChecks)
-  const addedRequirements = new Set<number>();
+  // Get a human-readable group title. English titles already act as the
+  // shared category. For Russian, feature checks store the category before
+  // the colon ("Лидерборды: ...", "Инн-апы: ...").
+  const getGroupTitle = (requirement: Requirement): string => {
+    if (language === "en") return requirement.requirement_en;
+    const parts = requirement.requirement.split(":");
+    return parts.length > 1 ? parts[0].trim() : requirement.requirement;
+  };
 
-  // Generate feedback for each requirement with selected issues
-  Object.entries(groupedByRequirement).forEach(([reqId, issueIndices]) => {
-    const requirement = REQUIREMENTS.find((r) => r.id === parseInt(reqId));
+  // Collect selected issues into groups
+  selectedIssues.forEach((issue) => {
+    const requirement = REQUIREMENTS.find((r) => r.id === issue.requirementId);
     if (!requirement) return;
 
-    addedRequirements.add(requirement.id);
+    const groupKey = requirement.requirement_en;
+    const title = getGroupTitle(requirement);
+    const group = getGroup(groupKey);
+    group.title = title;
+    const subReq = requirement.sub_requirements[issue.issueIndex];
 
-    // Use English or Russian title based on language
-    const title = language === "en" ? requirement.requirement_en : requirement.requirement;
-    
-    // Separate bugs and recommendations
-    const bugIssues: string[] = [];
-    
-    issueIndices.forEach((issueIndex) => {
-      const subReq = requirement.sub_requirements[issueIndex];
-      if (subReq) {
-        const feedbackText = subReq[feedbackField as keyof SubRequirement] as string;
-        if (subReq.type === "recommendation") {
-          // Add recommendations directly to the recommendation lines (without requirement title)
-          recommendationLines.push(`• ${feedbackText}`);
-        } else {
-          bugIssues.push(`• ${feedbackText}`);
-        }
+    if (subReq) {
+      const feedbackText = subReq[feedbackField as keyof SubRequirement] as string;
+      if (subReq.type === "recommendation") {
+        // Add recommendations directly to the recommendation lines (without requirement title)
+        recommendationLines.push(`• ${feedbackText}`);
+      } else {
+        group.bugIssues.push(`• ${feedbackText}`);
       }
-    });
-    
-    // Add bugs to main lines
-    if (bugIssues.length > 0) {
-      lines.push(`\n[${title}]`);
-      bugIssues.forEach(line => lines.push(line));
     }
   });
 
-  // Add failed checks without specific issues
+  // Collect failed checks without specific issues into groups
   failedChecks.forEach((failedCheck) => {
-    if (addedRequirements.has(failedCheck.requirementId)) {
-      // Already added this requirement with specific issues, skip
-      return;
-    }
-
     const requirement = REQUIREMENTS.find((r) => r.id === failedCheck.requirementId);
     if (!requirement) return;
 
-    const title = language === "en" ? requirement.requirement_en : requirement.requirement;
-    
+    const groupKey = requirement.requirement_en;
+    const title = getGroupTitle(requirement);
+    const group = getGroup(groupKey);
+    group.title = title;
+
     if (failedCheck.itemLabel) {
-      // Feature check item - add item label
-      lines.push(`\n[${title}]`);
-      lines.push(`• ${failedCheck.itemLabel}`);
+      group.failedCheckLabels.push(`• ${failedCheck.itemLabel}`);
     } else {
-      // Basic check - just add the requirement title
-      lines.push(`\n[${title}]`);
-      lines.push(language === "en" 
-        ? "• This check has failed. Please review and fix the issue."
-        : "• Эта проверка не пройдена. Пожалуйста, проверьте и исправьте проблему.");
+      group.hasGenericFailedCheck = true;
+    }
+  });
+
+  // Render grouped feedback
+  Object.values(groups).forEach((group) => {
+    const hasContent =
+      group.bugIssues.length > 0 ||
+      group.failedCheckLabels.length > 0 ||
+      group.hasGenericFailedCheck;
+    if (!hasContent) return;
+
+    lines.push(`\n[${group.title}]`);
+    group.bugIssues.forEach((line) => lines.push(line));
+    group.failedCheckLabels.forEach((line) => lines.push(line));
+    if (group.hasGenericFailedCheck) {
+      lines.push(
+        language === "en"
+          ? "• This check has failed. Please review and fix the issue."
+          : "• Эта проверка не пройдена. Пожалуйста, проверьте и исправьте проблему."
+      );
     }
   });
 
@@ -169,7 +192,7 @@ export function generateFeedback(
   if (recommendationLines.length > 0) {
     const optionalHeader = language === "en" ? "\n[Optional]" : "\n[Опционально]";
     lines.push(optionalHeader);
-    recommendationLines.forEach(line => lines.push(line));
+    recommendationLines.forEach((line) => lines.push(line));
   }
 
   return lines.join("\n").trim();
@@ -191,6 +214,7 @@ export const BASIC_CHECK_ITEMS: BasicCheckItem[] = [
   { id: "english", label: "Английский язык по умолчанию", description: "Игра запускается на английском языке", requirementId: 5 },
   { id: "progress_save", label: "После перезагрузки страницы - прогресс сохраняется", description: "Прогресс игрока не теряется", requirementId: 6 },
   { id: "sound", label: "Есть звук в игре", description: "Игра имеет звуковое оформление", requirementId: 7 },
+  { id: "no_ads", label: "Есть или interstitial, или rewarded реклама", description: "Проверяем наличие рекламы в игре", requirementId: 25 },
   { id: "interstitial_ads", label: "Interstitial реклама работает корректно", description: "Проверяем частоту и наличие interstitial рекламы", requirementId: 8 },
   { id: "rewarded_ads", label: "Rewarded реклама работает корректно", description: "Кнопки намекают что там реклама", requirementId: 9 },
   { id: "continue_no_ads", label: "Игру можно продолжать без обязательного реворда", description: "Можно пройти уровень заново без просмотра рекламы", requirementId: 10 },

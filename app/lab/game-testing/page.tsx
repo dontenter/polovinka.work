@@ -225,7 +225,7 @@ function CheckItemRowWithIssues({
             )}
             onClick={() => {
               console.log('Yes clicked');
-              onStatusChange(true);
+              onStatusChange(state.status === true ? undefined : true);
             }}
           >
             <CheckCircle2 className="h-4 w-4 mr-1" />
@@ -243,7 +243,7 @@ function CheckItemRowWithIssues({
             )}
             onClick={() => {
               console.log('No clicked');
-              onStatusChange(false);
+              onStatusChange(state.status === false ? undefined : false);
             }}
           >
             <XCircle className="h-4 w-4 mr-1" />
@@ -1036,7 +1036,7 @@ export default function GameTestingPage() {
       ...prev,
       [id]: {
         status,
-        selectedIssues: status === true ? [] : prev[id]?.selectedIssues || [],
+        selectedIssues: status === false ? prev[id]?.selectedIssues || [] : [],
       },
     }));
   };
@@ -1080,7 +1080,7 @@ export default function GameTestingPage() {
                 [itemId]: {
                   status,
                   selectedIssues:
-                    status === true ? [] : f.itemStates[itemId]?.selectedIssues || [],
+                    status === false ? f.itemStates[itemId]?.selectedIssues || [] : [],
                 },
               },
             }

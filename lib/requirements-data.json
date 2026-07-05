@@ -29,7 +29,7 @@
   {
     "id": 2,
     "requirement": "Нет спорного контента / IP",
-    "requirement_en": "No Disputed Content / IP",
+    "requirement_en": "Disputed Content / IP",
     "sub_requirements": [
       {
         "issue": "Игра повторяет другую игру",
@@ -56,7 +56,7 @@
   {
     "id": 3,
     "requirement": "Нет крэшей",
-    "requirement_en": "No Crashes",
+    "requirement_en": "Crashes",
     "sub_requirements": [
       {
         "issue": "Игра не загружается (blank screen, stuck on loading)",
@@ -78,7 +78,7 @@
   {
     "id": 4,
     "requirement": "Нет кривого UI в разных режимах Scale Test + пр изменении размеров браузера",
-    "requirement_en": "No Broken UI in Different Scale Modes",
+    "requirement_en": "Broken UI",
     "sub_requirements": [
       {
         "issue": "Черные/белые полосы по краям (black bars)",
@@ -122,7 +122,7 @@
   {
     "id": 6,
     "requirement": "После перезагрузки страницы - прогресс игрока сохраняется",
-    "requirement_en": "Player Progress Saved After Reload",
+    "requirement_en": "Player Progress",
     "sub_requirements": [
       {
         "issue": "Прогресс не сохраняется после перезагрузки",
@@ -139,7 +139,7 @@
   {
     "id": 7,
     "requirement": "Есть звук в игре",
-    "requirement_en": "Game Has Sound",
+    "requirement_en": "Game Sound",
     "sub_requirements": [
       {
         "issue": "Нет звука или музыки",
@@ -151,18 +151,8 @@
   {
     "id": 8,
     "requirement": "Interstitial реклама работает корректно",
-    "requirement_en": "Interstitial Ads Work Correctly",
+    "requirement_en": "Interstitial Ads",
     "sub_requirements": [
-      {
-        "issue": "Нет interstitial рекламы",
-        "feedback_en": "Interstitial ads are not showing in the game. Please ensure interstitial ads are implemented and called at appropriate moments (e.g., level complete, game over). Guide: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/interstitial-ads-sound",
-        "feedback_ru": "Interstitial реклама не показывается в игре. Убедитесь, что Interstitial реклама реализована и вызывается в подходящие моменты (например, завершение уровня, game over). Гайд: https://wiki.playgama.com/playgama/sdk/how-to-fix-issues/interstitial-ads-sound"
-      },
-      {
-        "issue": "Interstitial реклама появляется в первые 60 секунд",
-        "feedback_en": "Interstitial ad appears within the first 60 seconds of gameplay. According to platform guidelines, the first interstitial ad must not be shown earlier than 60 seconds after the game starts to avoid poor user experience.",
-        "feedback_ru": "Interstitial реклама появляется в первые 60 секунд игры. Согласно правилам платформ, первая Interstitial реклама не должна показываться раньше чем через 60 секунд после начала игры, чтобы не ухудшать пользовательский опыт."
-      },
       {
         "issue": "Частота показа interstitial чаще чем раз в 60 секунд",
         "feedback_en": "Interstitial ads are shown more frequently than once every 60 seconds. Please limit interstitial ad frequency to no more than once per 60 seconds to maintain good user experience and comply with platform guidelines.",
@@ -185,7 +175,7 @@
   {
     "id": 9,
     "requirement": "Rewarded реклама работает корректно",
-    "requirement_en": "Rewarded Ads Expected",
+    "requirement_en": "Rewarded Ads",
     "sub_requirements": [
       {
         "issue": "Rewarded ad не работает или дает бонус без просмотра",
@@ -207,7 +197,7 @@
   {
     "id": 10,
     "requirement": "Игру можно продолжать без обязательного реворда или пройти уровень заново без просмотра рекламы",
-    "requirement_en": "Game Can Continue Without Mandatory Reward",
+    "requirement_en": "Mandatory Reward",
     "sub_requirements": [
       {
         "issue": "Обязательная реклама для прогресса",
@@ -219,7 +209,7 @@
   {
     "id": 11,
     "requirement": "Игра ставится на паузу при рекламе",
-    "requirement_en": "Game Pauses During Ads",
+    "requirement_en": "Pause During Ads",
     "sub_requirements": [
       {
         "issue": "Игра не ставится на паузу во время рекламы",
@@ -231,7 +221,7 @@
   {
     "id": 12,
     "requirement": "Звук пропадает во время рекламы и при сворачивании вкладки",
-    "requirement_en": "Sound Muted During Ads and Tab Switch",
+    "requirement_en": "Sound Mute During Ads and Tab Switch",
     "sub_requirements": [
       {
         "issue": "Звук не отключается во время рекламы",
@@ -270,7 +260,7 @@
   {
     "id": 14,
     "requirement": "Если есть поддержка мобайла - игра там запускается и успешно проходится первый уровень",
-    "requirement_en": "Mobile Support Works",
+    "requirement_en": "Mobile Support",
     "sub_requirements": [
       {
         "issue": "Игра не загружается на iOS/Android",
@@ -297,7 +287,7 @@
   {
     "id": 15,
     "requirement": "Если есть авторизация - она работает",
-    "requirement_en": "Authorization Works",
+    "requirement_en": "Authorization",
     "sub_requirements": [
       {
         "issue": "Авторизация не работает или блокирует вход",
@@ -321,7 +311,7 @@
   {
     "id": 17,
     "requirement": "Мультиплеер: Запускаем игру и в Desktop и в мобилке. Тестируем, что игроки видят друг друга",
-    "requirement_en": "Multiplayer: Cross-Platform Works",
+    "requirement_en": "Multiplayer",
     "sub_requirements": [
       {
         "issue": "Игроки не видят друг друга между платформами",
@@ -333,7 +323,7 @@
   {
     "id": 18,
     "requirement": "Лидерборды: Играем какое-то время, проигрываем. Открываем лидерборд - мы там есть.",
-    "requirement_en": "Leaderboards: Player Appears After Game",
+    "requirement_en": "Leaderboards",
     "sub_requirements": [
       {
         "issue": "Игрока нет в лидерборде после игры",
@@ -345,7 +335,7 @@
   {
     "id": 19,
     "requirement": "Лидерборды: Перезагружаем страницу открываем страницу - мы там все еще есть",
-    "requirement_en": "Leaderboards: Data Persists After Reload",
+    "requirement_en": "Leaderboards",
     "sub_requirements": [
       {
         "issue": "Данные лидерборда не сохраняются после перезагрузки",
@@ -357,7 +347,7 @@
   {
     "id": 20,
     "requirement": "Лидерборды: Пробуем побить свой рекорд. Открываем лидерборд - данные там изменились.",
-    "requirement_en": "Leaderboards: Record Updates",
+    "requirement_en": "Leaderboards",
     "sub_requirements": [
       {
         "issue": "Рекорд не обновляется в лидерборде",
@@ -369,7 +359,7 @@
   {
     "id": 21,
     "requirement": "Инн-апы: Пробуем совершить покупку - все проходит, покупка начисляется",
-    "requirement_en": "In-App Purchases: Purchase Works",
+    "requirement_en": "In-App Purchases",
     "sub_requirements": [
       {
         "issue": "Покупка не работает или не начисляется",
@@ -381,7 +371,7 @@
   {
     "id": 22,
     "requirement": "Инн-апы: Перезагружаем страницу - видим что все купленное ранее отображается",
-    "requirement_en": "In-App Purchases: Purchases Persist",
+    "requirement_en": "In-App Purchases",
     "sub_requirements": [
       {
         "issue": "Купленные предметы не сохраняются",
@@ -393,7 +383,7 @@
   {
     "id": 23,
     "requirement": "Инн-апы: Если покупка была non-consumable - проверяем, что ее нельзя купить снова",
-    "requirement_en": "In-App Purchases: Non-Consumable Cannot Be Repurchased",
+    "requirement_en": "In-App Purchases",
     "sub_requirements": [
       {
         "issue": "Non-consumable можно купить несколько раз",
@@ -411,6 +401,18 @@
         "issue": "Кнопка соцшаринга видна на неподдерживаемых платформах",
         "feedback_en": "The social share button is visible on platforms that do not support this feature (should only appear on VK). Please check the Feature Control flag and hide the button when Social Share is disabled.",
         "feedback_ru": "Кнопка социального шаринга видна на платформах, которые не поддерживают эту функцию (должна быть только на VK). Проверьте флаг Feature Control и скройте кнопку, когда Social Share отключен."
+      }
+    ]
+  },
+  {
+    "id": 25,
+    "requirement": "Нет interstitial или rewarded рекламы",
+    "requirement_en": "No ads",
+    "sub_requirements": [
+      {
+        "issue": "Нет рекламы в игре",
+        "feedback_en": "The game does not contain any Interstitial or Rewarded ads. Please implement advertisement using the Bridge SDK to improve monetization. Documentation: https://wiki.playgama.com/playgama/bridge-sdk/api/advertisement",
+        "feedback_ru": "В игре отсутствуют Interstitial и Rewarded реклама. Пожалуйста, реализуйте рекламу с помощью Bridge SDK для улучшения монетизации. Документация: https://wiki.playgama.com/playgama/bridge-sdk/api/advertisement"
       }
     ]
   }
