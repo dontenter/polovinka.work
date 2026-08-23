@@ -220,7 +220,6 @@ export const BASIC_CHECK_ITEMS: BasicCheckItem[] = [
   { id: "continue_no_ads", label: "Игру можно продолжать без обязательного реворда", description: "Можно пройти уровень заново без просмотра рекламы", requirementId: 10 },
   { id: "pause_ads", label: "Игра ставится на паузу при рекламе", description: "Геймлей останавливается во время показа рекламы", requirementId: 11 },
   { id: "sound_mute_ads", label: "Звук пропадает во время рекламы и при сворачивании вкладки", description: "Корректное поведение звука", requirementId: 12 },
-  { id: "mute_button", label: "Есть кнопка отключения звука в игре", description: "Пользователь может выключить звук", requirementId: 13 },
   { id: "mobile_support", label: "Если есть поддержка мобайла - игра работает без проблем и зависаний", description: "Мобильная версия работает корректно", requirementId: 14 },
   { id: "auth", label: "Если есть авторизация - она работает", description: "Система авторизации функционирует", requirementId: 15 },
   { id: "languages", label: "Если есть несколько языков - игра подстраивается под выбранный язык", description: "Локализация работает корректно", requirementId: 16 },

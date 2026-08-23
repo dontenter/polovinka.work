@@ -2,6 +2,14 @@
 
 > This file is written for AI coding agents. It describes the project as it actually is, based on the source files. When you edit code, keep this guide in mind.
 
+### Agent startup workflow
+
+- Treat this file as the default project map; do not re-audit the whole repository before every task.
+- For a new change, use the fast file lookup in section 12, inspect the named primary file and its listed contracts, then implement.
+- Expand the investigation only when the requested behavior crosses a documented boundary, the relevant code contradicts this file, or verification exposes an unexpected dependency.
+- Before editing, check `git status --short` and preserve unrelated user changes. Do not rewrite monolithic pages merely to make a focused change.
+- After changing behavior, update this file only when architecture, storage shapes, routes, scoring rules, environment requirements, or known invariants have materially changed.
+
 ---
 
 ## 1. Project overview
@@ -72,6 +80,7 @@ components/
   site-nav.tsx        # Header navigation
 lib/
   auth-lab.ts         # Cookie-based session signing/verification (Web Crypto)
+  blob-index.ts       # Lightweight Vercel Blob indexes + 15-second in-memory cache
   game-seo-storage.ts # Client-side helpers for SEO API + types
   game-testing-storage.ts # Client-side helpers for testing API + types
   requirements.ts     # QA requirement logic, maps, feedback generation
@@ -117,6 +126,8 @@ There are no automated tests in the repo. Verify changes by running `npm run bui
 
 Copy `.env.example` to `.env.local` and fill in values. Never commit `.env.local` (it is gitignored).
 
+> **Current repository caveat:** `.env.example` is stale and currently documents Gemini/R2 only. The source code is the authority for the complete list below. Update `.env.example` when environment-related code changes.
+
 ```bash
 # OpenAI (used by generate-description, generate-seo-description, enhance-feedback, translate-feedback)
 OPENAI_API_KEY=sk-...
@@ -159,6 +170,7 @@ node -e "console.log(require('crypto').createHash('sha256').update('YOUR_SALT' +
 - The middleware checks the `lab_session` cookie, verifies the HMAC-SHA256 signature with `LAB_SECRET`, and validates the token is ≤ 7 days old.
 - If `LAB_SECRET` (or the password hash/salt) is not configured, the middleware allows access — useful for local development but dangerous in production.
 - The session cookie is `httpOnly`, `secure` only in production, `sameSite: "lax"`, max-age 7 days.
+- `middleware.ts` matches `/lab` only. The handlers under `/api/**` currently do **not** verify the lab session themselves, so protecting the UI does not protect direct API calls.
 
 ---
 
@@ -202,8 +214,14 @@ node -e "console.log(require('crypto').createHash('sha256').update('YOUR_SALT' +
   - Legacy single-blob results (`{id}.json`) are still readable and are auto-migrated to the manifest format on the first edit.
   - Optional `fullSeoBefore` and `fullSeoAfter` HTML fields are stored in both the manifest and the current version snapshot. They are edited from the detail page (`PATCH /api/game-seo/[id]`) without creating a new version, and existing values are preserved when an older result is re-saved from the editor.
 - Testing results: `{prod|dev}/game-testing-results/{id}.json`
+- Lightweight list indexes:
+  - `{prod|dev}/game-seo-results/index.json`
+  - `{prod|dev}/game-testing-results/index.json`
+  - `lib/blob-index.ts` caches each index in-process for 15 seconds.
+  - If an index is missing or unreadable, it is rebuilt by listing and fetching existing result blobs.
 - `NODE_ENV === "production"` uses the `prod` prefix; otherwise `dev`.
-- Listing fetches all blobs and filters/sorts in memory; pagination is applied after the full fetch.
+- Normal history listing reads the lightweight index, then searches and paginates it in memory. Full blob enumeration happens only while rebuilding a missing index.
+- Index updates use read-modify-write without locking. Concurrent saves can theoretically overwrite one another's index changes even though the result blobs themselves are saved.
 
 ### Cloudflare R2
 
@@ -222,16 +240,50 @@ node -e "console.log(require('crypto').createHash('sha256').update('YOUR_SALT' +
 - **fetch-icon** downloads an external image, converts AVIF/WebP/SVG to JPEG with `sharp`, validates size/type, and uploads to Vercel Blob.
 - **proxy-image** fetches a remote image by URL, validates the protocol is `http:`/`https:`, forwards the response with a 5-minute private cache.
 
+### End-to-end tool flows
+
+#### Game SEO
+
+1. `app/lab/game-seo/page.tsx` collects Russian source facts in deep-content blocks and confirmed FAQ pairs.
+2. Its local `buildContext()` filters placeholders and blocks without enough useful content, then serializes stable English labels plus Russian answers.
+3. `POST /api/generate-seo-description` sends that context to OpenAI `gpt-4o-mini` for translation/editorial cleanup.
+4. Generation automatically saves the result; manual save uses the same endpoint.
+5. `POST /api/game-seo` writes an immutable version snapshot, updates the manifest, computes a human-readable change summary, resets `qcChecked` after real content changes, and updates the index.
+6. `PATCH /api/game-seo/[id]` changes `qcChecked`, `fullSeoBefore`, or `fullSeoAfter` without creating a new version.
+
+Most deep-content blocks require at least two non-placeholder items. Levels also qualify with both count and structure; Story can qualify with prose in `meta.structure`. FAQ items must be confirmed and have both a question and an answer.
+
+#### Game Testing
+
+1. `app/lab/game-testing/page.tsx` collects basic checks, optional feature checks, weighted rating criteria, notes, and selected requirement issues.
+2. `lib/requirements.ts` deterministically produces grouped developer feedback from `lib/requirements-data.json`.
+3. `/api/enhance-feedback` professionally rewrites user notes without inventing facts; `/api/translate-feedback` translates the final feedback while protecting technical terms.
+4. Screenshots are uploaded through `/api/upload-image` to Cloudflare R2 and their URLs are inserted into the feedback.
+5. `POST /api/game-testing` writes one mutable JSON result and updates the testing index. Unlike SEO, QA results are not versioned.
+
+Rating thresholds are based on the weighted raw total: `>26.5 => 5`, `>22 => 4`, `>16 => 3`, `>10 => 2`, otherwise `1`. `no_annoying` and `ai_made` subtract their weights when checked. `smart_ads` is displayed but excluded from the score.
+
+#### Image Generator
+
+1. The cover mode accepts an image URL and platform selection (Facebook, MSN, Yandex, Game Distribution, Xiaomi, YouTube).
+2. `/api/fetch-icon` fetches the remote source, converts AVIF/WebP/SVG to JPEG when necessary, and uploads a public reference image to Vercel Blob.
+3. The client deduplicates required outputs by aspect ratio and starts Nano Banana tasks in parallel.
+4. `/api/generate-cover/status` is polled every 3 seconds, up to 60 times.
+5. Exact-size resize-only outputs and derived crops are produced client-side with canvas; manual crop and size-constrained JPEG export are also client-side.
+6. Icon mode does not call Nano Banana: it creates square sizes `1080, 1024, 512, 450, 300, 192, 16` locally. The 300px export targets 50 KB.
+
 ---
 
 ## 10. Security considerations
 
 - **Do not commit secrets.** `.env*.local` and `.vercel` are gitignored.
 - **Lab auth is disabled if env vars are missing.** Always set `LAB_PASSWORD_HASH`, `LAB_PASSWORD_SALT`, and `LAB_SECRET` in production.
+- **API routes are not covered by the lab middleware.** Treat this as known security debt when adding any sensitive or expensive endpoint.
 - **Uploaded/scraped images are validated** for protocol, content-type, and size before processing or storage.
 - **API keys are server-side only.** OpenAI/Nano Banana/R2 keys are never sent to the browser.
 - **Vercel Blob result files are stored as `access: "public"`.** Anyone with the blob URL can read them. This is intentional for the current internal-tool use case, but do not store sensitive data in results.
 - **History deletion is guarded by a hardcoded password** (`DELETE_PASSWORD = "delete"` in `app/lab/game-seo/history/page.tsx` and `app/lab/game-testing/history/page.tsx`). This is a simple guard, not a security boundary.
+- **Remote image endpoints are SSRF-sensitive.** `fetch-icon` and `proxy-image` currently allow any syntactically valid HTTP(S) URL and do not reject loopback, link-local, or private-network destinations.
 - **OpenAI prompts include strict instructions** not to invent facts, add examples, or translate protected technical terms. Preserve those constraints when editing prompts.
 
 ---
@@ -250,10 +302,28 @@ node -e "console.log(require('crypto').createHash('sha256').update('YOUR_SALT' +
 - Editing `lib/requirements-data.json` or `lib/requirements.ts` changes the QA feedback text produced for game developers.
 - Editing prompts in `app/api/generate-*/route.ts`, `app/api/enhance-feedback/route.ts`, or `app/api/translate-feedback/route.ts` changes the AI output. Keep the existing "do not invent facts" / "preserve labels" / "no markdown" constraints.
 - The Game Testing rating score is computed client-side in `app/lab/game-testing/page.tsx` from weighted criteria. If you add/remove criteria, update both the form and the history/detail pages.
-- The Game SEO `buildContext` function is duplicated/shared between the editor and the detail view. Keep the serialization format stable because the prompt depends on exact English labels and `Q:`/`A:` markers.
+- The Game SEO editor and detail page duplicate filtering/formatting helpers. Keep their rules aligned. Keep the serialization format stable because the OpenAI prompt depends on exact English labels and `Q:`/`A:` markers.
 - Game SEO results are versioned: every save creates a new immutable version snapshot and updates a manifest. The detail page shows a timeline of versions and a human-readable diff. Editing an existing result loads it into `/lab/game-seo?id={id}` and appends a new version on save.
 - Game SEO results have a `qcChecked` flag stored in the manifest. It can be toggled from the history list and is persisted without creating a new version.
 - `app/api/fetch-icon` and `app/api/upload-image` require Node.js; they will not work in Edge runtime.
+- `app/api/generate-cover/route.ts` has a known callback-base expression bug: when `NEXT_PUBLIC_APP_URL` is set it can still construct the URL from `VERCEL_URL`, including `https://undefined` if `VERCEL_URL` is absent. Fix this before relying on callbacks; polling is the currently meaningful completion path.
+- The main client pages are intentionally monolithic (`game-seo`, `game-testing`, `image-generator`). For a small change, edit locally and avoid an unrelated refactor. For a larger feature, extract cohesive helpers/components while preserving serialized data shapes.
+
+### Fast file lookup for future changes
+
+| Change requested | Start here | Also inspect |
+|---|---|---|
+| SEO editor fields or validation | `app/lab/game-seo/page.tsx` | detail page, `lib/game-seo-storage.ts`, SEO API types/diff logic |
+| SEO prompt/output rules | `app/api/generate-seo-description/route.ts` | editor `buildContext()` and detail rendering |
+| SEO versioning/history/QC | `app/api/game-seo/route.ts` | `app/api/game-seo/[id]/route.ts`, versions route, history pages, `lib/blob-index.ts` |
+| QA checklist or issue wording | `lib/requirements-data.json`, `lib/requirements.ts` | QA editor and detail/history pages |
+| QA rating | `RATING_CRITERIA` and `calculateRating` in `app/lab/game-testing/page.tsx` | history/detail rating badges |
+| QA AI feedback/translation | `app/api/enhance-feedback/route.ts`, `app/api/translate-feedback/route.ts` | `FeedbackModal` in QA editor |
+| QA screenshots | `app/api/upload-image/route.ts` | screenshot UI in QA editor/detail |
+| Cover platform formats | `PLATFORMS` and `getOutputSizes()` in `app/lab/image-generator/page.tsx` | Nano Banana accepted ratios and client crop/compression helpers |
+| Nano Banana integration | `app/api/generate-cover/route.ts`, status route | image-generator polling/error handling |
+| Login/session behavior | `middleware.ts`, `lib/auth-lab.ts`, `app/api/auth/lab/route.ts` | login page and logout route |
+| History list performance | `lib/blob-index.ts` | SEO/testing list and mutation routes |
 
 ---
 
