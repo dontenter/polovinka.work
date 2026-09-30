@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/", label: "Home" },
   { href: "/lab", label: "Lab" },
+  { href: "/life", label: "Life" },
 ] as const;
 
 export function SiteNav() {
@@ -18,7 +19,7 @@ export function SiteNav() {
         // On login page, "Lab" must not link to /lab (causes redirect and requires second click to submit)
         const isLabLogin = pathname === "/lab/login" && href === "/lab";
         const navHref = isLabLogin ? "/lab/login" : href;
-        const isActive = pathname === href || (isLabLogin && pathname === "/lab/login");
+        const isActive = pathname === href || (href !== "/" && pathname.startsWith(href + "/"));
         return (
           <Link
             key={href}

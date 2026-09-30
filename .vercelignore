@@ -1,0 +1,11 @@
+.git
+.env*
+.private
+*.session*
+*.command
+scripts/
+tests/
+supabase/
+docs/
+__pycache__/
+*.pyc

@@ -6,23 +6,23 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-function LabLoginForm() {
+function LifeLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const from = searchParams.get("from") ?? "/lab";
-  const redirect = /^\/(lab)(\/|$)/.test(from) && !/[\\\r\n]/.test(from) ? from : "/lab";
-  const area = "Lab";
+  const from = searchParams.get("from") ?? "/life";
+  const redirect = /^\/(life)(\/|$)/.test(from) && !/[\\\r\n]/.test(from) ? from : "/life";
+  const area = "Life";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/lab", {
+      const res = await fetch("/api/auth/life", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
@@ -47,7 +47,7 @@ function LabLoginForm() {
         <CardHeader>
           <CardTitle className="text-xl">{area} access</CardTitle>
           <CardDescription>
-            Enter your Lab password to open {area}.
+            Enter your separate Life password.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -91,14 +91,14 @@ function LabLoginForm() {
   );
 }
 
-export default function LabLoginPage() {
+export default function LifeLoginPage() {
   return (
     <Suspense fallback={
       <div className="container max-w-md mx-auto px-4 py-16">
         <div className="h-64 rounded-xl border border-border bg-muted/20 animate-pulse" />
       </div>
     }>
-      <LabLoginForm />
+      <LifeLoginForm />
     </Suspense>
   );
 }
