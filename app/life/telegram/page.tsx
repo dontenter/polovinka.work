@@ -1,14 +1,10 @@
+import { TelegramDigest } from "@/components/telegram-digest";
 import Link from "next/link";
 import { requireLifeSession } from "@/lib/life-auth";
 import { lifeStorageConfigured, listDigests, readDigest } from "@/lib/life-storage";
 
 function readable(id: string) {
   return `${id.slice(6, 8)}.${id.slice(4, 6)}.${id.slice(0, 4)}`;
-}
-function SafeText({ text }: { text: string }) {
-  return <>{text.split(/(https:\/\/t\.me\/[^\s)\]<>]+)/g).map((part, i) =>
-    /^https:\/\/t\.me\//.test(part) ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-accent underline break-all">{part}</a> : part
-  )}</>;
 }
 export default async function TelegramPage({ searchParams }: { searchParams: Promise<{ id?: string; cursor?: string }> }) {
   await requireLifeSession("/life/telegram");
@@ -39,12 +35,7 @@ export default async function TelegramPage({ searchParams }: { searchParams: Pro
         {archive.items.map(id => <Link key={id} href={{ pathname: "/life/telegram", query: { id, ...(query.cursor ? { cursor: query.cursor } : {}) } }} aria-current={digest?.id === id ? "page" : undefined} className={`rounded-lg border px-3 py-2 text-sm ${digest?.id === id ? "bg-muted" : "hover:bg-muted/50"}`}>{readable(id)}</Link>)}
         {archive.cursor ? <Link href={{ pathname: "/life/telegram", query: { cursor: archive.cursor } }} className="text-sm underline p-2">Следующие даты →</Link> : null}
       </aside>
-      {digest ? <article className="min-w-0 rounded-xl border bg-card p-6 sm:p-8">
-        <p className="text-xs text-muted-foreground mb-6">{digest.messageCount} сообщений · {digest.model}</p>
-        <div className="space-y-4 text-sm leading-relaxed">{digest.markdown.split(/\n\s*\n/).map((paragraph, i) =>
-          <p key={i} className="whitespace-pre-wrap break-words"><SafeText text={paragraph}/></p>
-        )}</div>
-      </article> : null}
+      {digest ? <TelegramDigest digest={digest}/> : null}
     </div>
   </main>;
 }
