@@ -333,3 +333,14 @@ Rating thresholds are based on the weighted raw total: `>26.5 => 5`, `>22 => 4`,
 - **SEO/testing history empty locally:** ensure `BLOB_READ_WRITE_TOKEN` is set; otherwise blob storage fails.
 - **Cover generation fails:** check `NANOBANANA_API_KEY` and the browser console for `[Image Generator]` debug logs.
 - **Image upload fails:** verify R2 credentials and bucket permissions.
+
+## Life / Telegram Summary
+
+- `/life` is the private personal dashboard; `/life/telegram` is the digest archive. `/life/login` uses separate `LIFE_PASSWORD_HASH` (scrypt, N=16384/r=8/p=1, 64 bytes hex), `LIFE_PASSWORD_SALT`, `LIFE_SECRET`, and `life_session` cookie. Lab credentials and sessions cannot open Life. Logout only clears Life's cookie.
+- `lib/auth-life.ts` verifies HMAC-signed tokens with explicit Life scope and a finite timestamp, valid for 7 days. Middleware and protected server pages both check sessions. Missing configuration always denies access.
+- `lib/life-storage.ts` is server-only and uses Supabase REST with `SUPABASE_URL` and `SUPABASE_SECRET_KEY` (or legacy `SUPABASE_SERVICE_ROLE_KEY`). Responses are not cached. No Supabase keys are exposed to browsers.
+- Apply `supabase/migrations/202609300001_life_digests.sql` once to create `public.life_digests`. RLS is enabled; anon/authenticated roles have no access. The backend service_role can select/insert, with no browser policies. The existing public Blob store remains for Lab only.
+- Archive order is descending by ID, 30 results per page with keyset pagination. Fields: id, period_from, period_to, model, message_count, markdown, created_at. Duplicate IDs are rejected, not overwritten.
+- `POST /api/life/digests` uses `LIFE_INGEST_SECRET` for import. Reads are via authenticated server pages. Summaries render escaped text and Telegram links; never raw HTML.
+- `configure-life.command` configures `.env.local` with hidden key/password input. It preserves Lab settings and stores only a scrypt password hash. It does not configure Vercel or execute SQL.
+- Automatic Telegram collection, server generation and delivery are still not connected. No cron is active.
