@@ -28,7 +28,10 @@ p=root/'.env.local'
 existing=p.read_text()
 if not any(l.startswith('CRON_SECRET=') for l in existing.splitlines()): settings['CRON_SECRET']=secrets.token_hex(32)
 lines=[l for l in existing.splitlines() if l.split('=',1)[0] not in settings]
-lines.extend(k+'='+json.dumps(v,ensure_ascii=False) for k,v in settings.items())
+# dotenv preserves escaped quotes; use backticks around JSON instead.
+if any('`' in v or '\n' in v for v in settings.values()):
+    raise SystemExit('Unsupported newline or backtick in settings')
+lines.extend(k+'=`'+v+'`' for k,v in settings.items())
 os.umask(0o077)
 fd,temp=tempfile.mkstemp(dir=root,prefix='.env.',suffix='.local')
 with os.fdopen(fd,'w') as f: f.write('\n'.join(lines)+'\n')

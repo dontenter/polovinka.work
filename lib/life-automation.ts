@@ -126,9 +126,13 @@ export async function runDailyDigest() {
     await checkpoint({ p_done: true });
     return { status: "sent", day: run.day, parts: run.parts.length };
   } catch (error) {
+    // Log only typed error codes, never messages containing external payloads.
+    const diagnostic = error as { name?: string; code?: string; errorMessage?: string };
+    const code = [diagnostic?.name, diagnostic?.code, diagnostic?.errorMessage]
+      .filter((value): value is string => typeof value === "string" && /^[A-Za-z_0-9]{1,80}$/.test(value)).join(": ");
     // Logs/database never include Telegram payloads, API response bodies or credentials.
     const safe = error instanceof Error && /^(Supabase \d+|OpenAI \d+|Incomplete summary|Empty summary|Invalid source link|Telegram session expired|Time budget exceeded|Lease lost|Chat exceeds|Daily input exceeds|Invalid chat configuration|Missing LIFE_)/.test(error.message)
-      ? error.message.slice(0, 150) : "Telegram or network error";
+      ? error.message.slice(0, 150) : `Telegram or network error${code ? ` (${code})` : ""}`;
     await db("rpc/life_checkpoint_run", { p_day: run.day, p_owner: owner, p_error: safe }).catch(() => undefined);
     throw new Error(safe);
   } finally { await client?.disconnect(); }
