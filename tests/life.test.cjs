@@ -61,3 +61,16 @@ test('Life origin check supports Next proxy URLs and blocks foreign origins', ()
   assert.equal(lifeRequestOrigin(new Headers({host:'www.polovinka.work',origin:'https://evil.example'})), null);
   assert.equal(lifeRequestOrigin(new Headers({host:'www.polovinka.work'})), null);
 });
+test('Daily window is 08:00 Bali; split messages fit Telegram and IDs are stable', () => {
+  const ts = require('typescript'); const vm = require('node:vm'); const exports = {};
+  vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/life-schedule.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,require,Date});
+  const window=exports.dailyWindow('2026-10-02');
+  assert.equal(window.to,'2026-10-02T00:00:00.000Z');
+  assert.equal(window.from,'2026-10-01T00:00:00.000Z');
+  const text='😀'.repeat(5000);
+  const parts=exports.deliveryParts(text,window.id);
+  assert.ok(parts.every(p=>p.length<4096));
+  assert.equal(parts.map(p=>p.split('\n\n#life_')[0]).join(''),text);
+  assert.equal(exports.deliveryId(window.id,0),exports.deliveryId(window.id,0));
+  assert.notEqual(exports.deliveryId(window.id,0),exports.deliveryId(window.id,1));
+});

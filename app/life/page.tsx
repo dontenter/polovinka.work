@@ -13,7 +13,7 @@ export default async function LifePage() {
       <div className="flex items-center justify-between"><MessageSquare className="h-6 w-6"/><ArrowUpRight className="h-5 w-5 text-muted-foreground"/></div>
       <h2 className="mt-6 text-xl font-medium">Telegram Summary</h2>
       <p className="mt-2 text-sm text-muted-foreground">Главное из выбранных чатов: AI, бизнес и события на Бали. Дайджесты со ссылками на обсуждения.</p>
-      <p className="mt-5 flex items-center gap-2 text-sm text-muted-foreground"><Sunrise className="h-4 w-4"/>Планируемое время — 08:00 · Бали</p>
+      <p className="mt-5 flex items-center gap-2 text-sm text-muted-foreground"><Sunrise className="h-4 w-4"/>{process.env.LIFE_AUTOMATION_ENABLED === "true" ? "Каждый день в 08:00 · Бали" : "Планируемое время — 08:00 · Бали"}</p>
       <p className="mt-4 text-sm font-medium">Открыть архив →</p>
     </Link>
   </main>;
