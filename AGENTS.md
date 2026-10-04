@@ -263,7 +263,7 @@ Most deep-content blocks require at least two non-placeholder items. Levels also
 
 Rating criteria retain stable IDs for saved results: `popularity_5k` now means >1k likes / >50k downloads, and `size_25mb` now means initial build <20 MB. History/detail pages display saved labels, weights, and scores without recalculating older results.
 
-Rating thresholds are based on the weighted raw total: `>27.5 => 5`, `>23 => 4`, `>18 => 3`, `>13 => 2`, otherwise `1`. `no_annoying` and `ai_made` subtract 2 points each; `text_heavy` subtracts 1 point when checked. `smart_ads` is displayed but excluded from the score.
+Rating thresholds are based on the weighted raw total: `>27.5 => 5`, `>23 => 4`, `>18 => 3`, `>13 => 2`, otherwise `1`. `no_annoying` and `ai_made` subtract 2 points each; `text_heavy` subtracts 1 point when checked. `smart_ads` is removed from new checklists; historical results retain it, and it remains excluded from scoring.
 
 #### Image Generator
 

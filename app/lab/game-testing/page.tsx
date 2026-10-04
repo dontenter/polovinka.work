@@ -98,7 +98,8 @@ type FeatureCheck = {
 // ==================== DATA ====================
 
 const RATING_CRITERIA: RatingCriterion[] = [
-  { id: "readable_ui", label: "Кнопки больше? Тексты читаемые? Выглядят хорошо?", weight: 1.5, checked: false },
+  { id: "readable_ui", label: "Кнопки большие? Выглядят хорошо?", weight: 1.5, checked: false },
+  { id: "text_heavy", label: "В игре много текстовой информации, как правило мелким шрифтом", weight: 1, checked: false },
   { id: "fresh_ui", label: "UI в игре свежий, стильный, проработанный?", weight: 2, checked: false },
   { id: "unique", label: "Играл/а во что-то похожее? Уникально выглядит?", weight: 2, checked: false },
   { id: "genre_quality", label: "Для своего жанра игра проработана лучше среднего?", weight: 2, checked: false },
@@ -126,8 +127,6 @@ const RATING_CRITERIA: RatingCriterion[] = [
   { id: "leaderboard_multiplayer", label: "Лидерборды или мультиплеер. Есть что-то из этого?", weight: 1.5, checked: false },
   { id: "no_annoying", label: "Есть что-то сильно раздражающее или мешающее игре?", weight: 2, checked: false },
   { id: "ai_made", label: "Игра полностью сделана на ИИ", weight: 2, checked: false },
-  { id: "text_heavy", label: "В игре много текстовой информации, как правило мелким шрифтом", weight: 1, checked: false },
-  { id: "smart_ads", label: "В игре можно безболезненно вставить Smart Ads?", weight: 1, checked: false },
 ];
 
 // ==================== COMPONENTS ====================
