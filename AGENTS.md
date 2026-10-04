@@ -261,7 +261,9 @@ Most deep-content blocks require at least two non-placeholder items. Levels also
 4. Screenshots are uploaded through `/api/upload-image` to Cloudflare R2 and their URLs are inserted into the feedback.
 5. `POST /api/game-testing` writes one mutable JSON result and updates the testing index. Unlike SEO, QA results are not versioned.
 
-Rating thresholds are based on the weighted raw total: `>26.5 => 5`, `>22 => 4`, `>16 => 3`, `>10 => 2`, otherwise `1`. `no_annoying` and `ai_made` subtract their weights when checked. `smart_ads` is displayed but excluded from the score.
+Rating criteria retain stable IDs for saved results: `popularity_5k` now means >1k likes / >50k downloads, and `size_25mb` now means initial build <20 MB. History/detail pages display saved labels, weights, and scores without recalculating older results.
+
+Rating thresholds are based on the weighted raw total: `>27.5 => 5`, `>23 => 4`, `>18 => 3`, `>13 => 2`, otherwise `1`. `no_annoying` and `ai_made` subtract 2 points each; `text_heavy` subtracts 1 point when checked. `smart_ads` is displayed but excluded from the score.
 
 #### Image Generator
 

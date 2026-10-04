@@ -368,13 +368,15 @@ export default function GameTestingHistoryPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                router.push(`/lab/game-testing/history/${result.id}`);
-                              }}
+                              asChild
                             >
-                              <Eye className="h-4 w-4 mr-2" />
-                              View
+                              <Link
+                                href={`/lab/game-testing/history/${result.id}`}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                View
+                              </Link>
                             </Button>
                             <Button
                               variant="ghost"

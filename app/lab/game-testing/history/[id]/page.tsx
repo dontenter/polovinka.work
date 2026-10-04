@@ -683,7 +683,9 @@ export default function GameTestResultPage() {
                       variant={criterion.checked ? "secondary" : "outline"}
                       className="text-xs"
                     >
-                      {criterion.checked ? `+${criterion.weight}` : criterion.weight}
+                      {criterion.checked
+                        ? `${["no_annoying", "ai_made", "text_heavy"].includes(criterion.id) ? "−" : "+"}${criterion.weight}`
+                        : criterion.weight}
                     </Badge>
                   </div>
                 ))}

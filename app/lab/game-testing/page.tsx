@@ -99,7 +99,7 @@ type FeatureCheck = {
 
 const RATING_CRITERIA: RatingCriterion[] = [
   { id: "readable_ui", label: "Кнопки больше? Тексты читаемые? Выглядят хорошо?", weight: 1.5, checked: false },
-  { id: "fresh_ui", label: "UI в игре свежий, стильный, проработанный?", weight: 3, checked: false },
+  { id: "fresh_ui", label: "UI в игре свежий, стильный, проработанный?", weight: 2, checked: false },
   { id: "unique", label: "Играл/а во что-то похожее? Уникально выглядит?", weight: 2, checked: false },
   { id: "genre_quality", label: "Для своего жанра игра проработана лучше среднего?", weight: 2, checked: false },
   { id: "progression", label: "Есть прогрессия у игрока или в уровнях? Хочется узнать что будет дальше?", weight: 1.5, checked: false },
@@ -107,26 +107,26 @@ const RATING_CRITERIA: RatingCriterion[] = [
   { id: "game_modes", label: "В игре есть разные режимы?", weight: 0.5, checked: false },
   { id: "characters", label: "В игре есть разные персонажи / скины / образы?", weight: 0.5, checked: false },
   { id: "onboarding", label: "Есть интро-уровень с онбордингом?", weight: 1, checked: false },
-  { id: "controls_clear", label: "Управление объясняется? Понятно как играть?", weight: 1, checked: false },
   { id: "meta_gameplay", label: "Мета-геймплей есть?", weight: 1, checked: false },
   { id: "meta_important", label: "Если мета-геймплей убрать - станет играть уже не так интересно?", weight: 1, checked: false },
   { id: "desktop_controls", label: "Управление на десктопе удобное?", weight: 2, checked: false },
   { id: "mobile_controls", label: "Если мобилка поддерживается - удобное управление?", weight: 1, checked: false },
   { id: "rewarded_value", label: "Если реворды убрать - играть станет сложнее?", weight: 1, checked: false },
   { id: "rewarded_types", label: "Ревордов >= 2 разных типов?", weight: 1, checked: false },
-  { id: "popularity_5k", label: "Лайков на Crazy/Poki >5k или скачиваний Google Play >100k?", weight: 1.5, checked: false },
-  { id: "popularity_15k", label: "Лайков на Crazy/Poki >15k или скачиваний Google Play 500k или рейтинг на Яндекс >70?", weight: 3, checked: false },
+  { id: "popularity_5k", label: "Лайков на Crazy/Poki >1k или скачиваний Google Play >50k?", weight: 1.5, checked: false },
+  { id: "popularity_15k", label: "Лайков на Crazy/Poki >15k или скачиваний Google Play 500k или рейтинг на Яндекс >70?", weight: 5, checked: false },
   { id: "retention_features", label: "Дейлики, колесо фортуны, ачивки, таски - есть что-то из этого?", weight: 1, checked: false },
   { id: "retention_2of5", label: "Дейлики, колесо фортуны, ачивки, таски, прогресс - 2 из 5 этого списка есть в игре?", weight: 0.5, checked: false },
-  { id: "size_50mb", label: "Вес билда <50Mb?", weight: 0.5, checked: false },
-  { id: "size_25mb", label: "Вес билда <25Mb?", weight: 0.5, checked: false },
+  { id: "size_50mb", label: "Initial билд <50 МБ", weight: 0.5, checked: false },
+  { id: "size_25mb", label: "Initial билд <20 МБ", weight: 0.5, checked: false },
   { id: "influencers", label: "Есть инн-апп покупки?", weight: 1, checked: false },
-  { id: "big_studio", label: "Игра от крупной студии?", weight: 1.5, checked: false },
+  { id: "big_studio", label: "Игра от крупной студии / high приоритет разработчик", weight: 2, checked: false },
   { id: "desktop_adapt", label: "Адаптация под десктоп нормальная, ушей нету?", weight: 1.5, checked: false },
   { id: "all_platforms", label: "Поддерживаются все платформы?", weight: 1.5, checked: false },
   { id: "leaderboard_multiplayer", label: "Лидерборды или мультиплеер. Есть что-то из этого?", weight: 1.5, checked: false },
   { id: "no_annoying", label: "Есть что-то сильно раздражающее или мешающее игре?", weight: 2, checked: false },
   { id: "ai_made", label: "Игра полностью сделана на ИИ", weight: 2, checked: false },
+  { id: "text_heavy", label: "В игре много текстовой информации, как правило мелким шрифтом", weight: 1, checked: false },
   { id: "smart_ads", label: "В игре можно безболезненно вставить Smart Ads?", weight: 1, checked: false },
 ];
 
@@ -1349,7 +1349,7 @@ export default function GameTestingPage() {
 
   // IDs of criteria excluded from final score calculation
   const EXCLUDED_CRITERIA_IDS = ["smart_ads"];
-  const NEGATIVE_CRITERIA_IDS = ["no_annoying", "ai_made"];
+  const NEGATIVE_CRITERIA_IDS = ["no_annoying", "ai_made", "text_heavy"];
 
   // Calculate final rating score
   const calculateRating = useMemo(() => {
@@ -1373,13 +1373,13 @@ export default function GameTestingPage() {
     });
 
     let finalScore: number;
-    if (totalScore > 26.5) {
+    if (totalScore > 27.5) {
       finalScore = 5;
-    } else if (totalScore > 22) {
+    } else if (totalScore > 23) {
       finalScore = 4;
-    } else if (totalScore > 16) {
+    } else if (totalScore > 18) {
       finalScore = 3;
-    } else if (totalScore > 10) {
+    } else if (totalScore > 13) {
       finalScore = 2;
     } else {
       finalScore = 1;
