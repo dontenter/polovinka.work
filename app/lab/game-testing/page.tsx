@@ -205,6 +205,7 @@ function CheckItemRowWithIssues({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium">{item.label}</span>
+            {requirement?.optional && <Badge variant="outline">Опционально</Badge>}
           </div>
           {item.description && (
             <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
@@ -981,7 +982,9 @@ export default function GameTestingPage() {
       (v) => v.status !== undefined
     ).length;
     const passed = Object.values(basicChecks).filter((v) => v.status === true).length;
-    const failed = Object.values(basicChecks).filter((v) => v.status === false).length;
+    const failed = Object.entries(basicChecks).filter(
+      ([id, check]) => check.status === false && !getRequirementByCheckId(id)?.optional
+    ).length;
     const issuesCount = Object.values(basicChecks).reduce(
       (sum, v) => sum + v.selectedIssues.length,
       0
@@ -1255,7 +1258,9 @@ export default function GameTestingPage() {
   };
 
   const hasFailedBasicChecks = useMemo(() => {
-    return Object.values(basicChecks).some((check) => check.status === false);
+    return Object.entries(basicChecks).some(
+      ([id, check]) => check.status === false && !getRequirementByCheckId(id)?.optional
+    );
   }, [basicChecks]);
 
   const hasFailedFeatureChecks = useMemo(() => {
@@ -1265,7 +1270,7 @@ export default function GameTestingPage() {
   }, [features]);
 
   const allBasicChecksAnswered = useMemo(() => {
-    return BASIC_CHECK_ITEMS.every((item) => basicChecks[item.id]?.status !== undefined);
+    return BASIC_CHECK_ITEMS.every((item) => getRequirementByCheckId(item.id)?.optional || basicChecks[item.id]?.status !== undefined);
   }, [basicChecks]);
 
   // Get all selected issues for feedback generation (from basic checks and feature checks)
@@ -1506,7 +1511,7 @@ export default function GameTestingPage() {
                   </div>
                   <div>
                     <CardTitle>Basic Checks</CardTitle>
-                    <CardDescription>Critical checks before publication</CardDescription>
+                    <CardDescription>Checks before publication; optional items are marked</CardDescription>
                   </div>
                 </div>
                 <Badge

@@ -140,11 +140,12 @@
     "id": 7,
     "requirement": "Есть звук в игре",
     "requirement_en": "Game Sound",
+    "optional": true,
     "sub_requirements": [
       {
         "issue": "Нет звука или музыки",
-        "feedback_en": "The game is completely silent or lacks background music/sound effects. Audio significantly impacts player engagement. Please add appropriate sounds and music. Requirements: https://wiki.playgama.com/playgama/game-requirements/user-experience-requirements",
-        "feedback_ru": "Игра полностью бесшумна или отсутствует фоновая музыка/звуковые эффекты. Аудио значительно влияет на вовлеченность игроков. Пожалуйста, добавьте соответствующие звуки и музыку. Требования: https://wiki.playgama.com/playgama/game-requirements/user-experience-requirements"
+        "feedback_en": "Consider adding sounds or music to improve the player experience. This is optional and does not block publication.",
+        "feedback_ru": "Рекомендуем добавить звуки или музыку, чтобы улучшить игровой опыт. Это необязательно и не препятствует публикации."
       }
     ]
   },

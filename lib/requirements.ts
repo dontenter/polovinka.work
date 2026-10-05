@@ -8,6 +8,7 @@ export interface SubRequirement {
 }
 
 export interface Requirement {
+  optional?: boolean;
   id: number;
   requirement: string;
   requirement_en: string;
@@ -142,7 +143,7 @@ export function generateFeedback(
 
     if (subReq) {
       const feedbackText = subReq[feedbackField as keyof SubRequirement] as string;
-      if (subReq.type === "recommendation") {
+      if (requirement.optional || subReq.type === "recommendation") {
         // Add recommendations directly to the recommendation lines (without requirement title)
         recommendationLines.push(`• ${feedbackText}`);
       } else {
@@ -155,6 +156,13 @@ export function generateFeedback(
   failedChecks.forEach((failedCheck) => {
     const requirement = REQUIREMENTS.find((r) => r.id === failedCheck.requirementId);
     if (!requirement) return;
+
+    if (requirement.optional) {
+      const recommendation = requirement.sub_requirements[0]?.[feedbackField]
+        ?? (language === "en" ? `Consider improving: ${requirement.requirement_en}.` : `Рекомендуем улучшить: ${requirement.requirement}.`);
+      recommendationLines.push(`• ${recommendation}`);
+      return;
+    }
 
     const groupKey = requirement.requirement_en;
     const title = getGroupTitle(requirement);
