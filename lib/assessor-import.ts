@@ -3,7 +3,6 @@ import { getSyncState, insertGames, saveSyncState, type ImportedGame } from "@/l
 
 const CATALOG = "https://playgama.ai/play";
 const PAGE_LIMIT = 25;
-const BACKFILL_PAGES = 5;
 
 function decodeHtml(value: string): string {
   return value.replace(/&(#x[\da-f]+|#\d+|amp|quot|apos|lt|gt|nbsp);/gi, (match, entity: string) => {
@@ -86,15 +85,12 @@ export async function resolveLaunchUrl(id: string): Promise<string> {
   return url.toString();
 }
 
-async function withLaunchUrl(game: ImportedGame): Promise<ImportedGame> {
-  try { return { ...game, launch_url: await resolveLaunchUrl(game.id) }; }
-  catch { return game; }
-}
-
-async function insertPage(games: ImportedGame[]): Promise<void> {
+async function insertPage(games: ImportedGame[]): Promise<number> {
+  let added = 0;
   for (let start = 0; start < games.length; start += 5) {
-    await insertGames(await Promise.all(games.slice(start, start + 5).map(withLaunchUrl)));
+    added += await insertGames(games.slice(start, start + 5));
   }
+  return added;
 }
 
 export async function syncAssessorGames(claimedAt: string): Promise<{ added: number; scanned: number; backfillDone: boolean }> {
@@ -103,34 +99,20 @@ export async function syncAssessorGames(claimedAt: string): Promise<{ added: num
   let scanned = 0;
   let newestId: string | null = null;
   let next: string | null = CATALOG;
-  let initialNext: string | null = null;
   let reachedPrevious = false;
 
   for (let page = 0; page < PAGE_LIMIT && next; page++) {
     const parsed = parseCatalog(await fetchHtml(next), next);
-    if (page === 0) { newestId = parsed.games[0].id; initialNext = parsed.next; }
+    if (page === 0) newestId = parsed.games[0].id;
     const stop = state?.newest_id ? parsed.games.findIndex(game => game.id === state.newest_id) : -1;
     const newGames = stop >= 0 ? parsed.games.slice(0, stop) : parsed.games;
-    await insertPage(newGames);
-    added += newGames.length;
+    added += await insertPage(newGames);
     scanned += parsed.games.length;
     if (!state?.newest_id || stop >= 0 || !parsed.next) { reachedPrevious = true; break; }
     next = parsed.next;
   }
   if (!reachedPrevious) throw new Error(`Previous catalog checkpoint not reached after ${PAGE_LIMIT} pages`);
 
-  let backfillCursor = state?.newest_id ? state.backfill_cursor : initialNext;
-  let backfillDone = state?.newest_id ? state.backfill_done : !initialNext;
-  if (!backfillDone && backfillCursor) {
-    for (let page = 0; page < BACKFILL_PAGES && backfillCursor; page++) {
-      const parsed = parseCatalog(await fetchHtml(backfillCursor), backfillCursor);
-      await insertPage(parsed.games);
-      added += parsed.games.length;
-      scanned += parsed.games.length;
-      backfillCursor = parsed.next;
-    }
-    if (!backfillCursor) backfillDone = true;
-  }
-  await saveSyncState({ newest_id: newestId, backfill_cursor: backfillCursor, backfill_done: backfillDone }, claimedAt);
-  return { added, scanned, backfillDone };
+  await saveSyncState({ newest_id: newestId, backfill_cursor: null, backfill_done: true }, claimedAt);
+  return { added, scanned, backfillDone: true };
 }

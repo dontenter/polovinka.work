@@ -105,11 +105,13 @@ export async function releaseAssessorSync(claim: SyncClaim): Promise<void> {
   });
 }
 
-export async function insertGames(games: ImportedGame[]): Promise<void> {
-  if (!games.length) return;
-  await db("assessor_games", "?on_conflict=id", {
+export async function insertGames(games: ImportedGame[]): Promise<number> {
+  if (!games.length) return 0;
+  const response = await db("assessor_games", "?on_conflict=id&select=id", {
     method: "POST",
-    headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
+    headers: { Prefer: "resolution=ignore-duplicates,return=representation" },
     body: JSON.stringify(games),
   });
+  const inserted: Pick<AssessorGame, "id">[] = await response.json();
+  return inserted.length;
 }
