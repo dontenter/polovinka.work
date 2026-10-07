@@ -43,6 +43,7 @@ export default function AssessorPage() {
   const status: Status = view === "review" ? "pending" : historyStatus;
   const current = view === "review" ? games.find(game => game.id === currentId) ?? games[0] : undefined;
   const nextGame = current ? games.find(game => game.id !== current.id) : undefined;
+  const stagedGames = [current, nextGame].filter((game): game is Game => Boolean(game));
 
   const load = useCallback(async () => {
     const sequence = ++loadSequence.current;
@@ -123,23 +124,29 @@ export default function AssessorPage() {
 
   async function answer(decision: Exclude<Status, "pending">) {
     if (!current || saving) return;
-    const reviewedId = current.id;
+    const reviewedGame = current;
+    const reviewedId = reviewedGame.id;
     const nextId = nextGame?.id ?? null;
+    const reviewedNote = note;
     setSaving(true);
     setError("");
+    setGames(previous => previous.filter(game => game.id !== reviewedId));
+    setCurrentId(nextId);
+    setTotal(previous => Math.max(0, previous - 1));
+    setNote("");
     try {
       const response = await fetch("/api/lab/assessor/" + reviewedId, {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: decision, reason: note.trim() }),
+        body: JSON.stringify({ status: decision, reason: reviewedNote.trim() }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not save review");
-      setGames(previous => previous.filter(game => game.id !== reviewedId));
-      setCurrentId(nextId);
-      setTotal(previous => Math.max(0, previous - 1));
-      setNote("");
       setReloadVersion(value => value + 1);
     } catch (cause) {
+      setGames(previous => [reviewedGame, ...previous.filter(game => game.id !== reviewedId)]);
+      setCurrentId(reviewedId);
+      setTotal(previous => previous + 1);
+      setNote(reviewedNote);
       setError(cause instanceof Error ? cause.message : "Could not save review");
     } finally { setSaving(false); }
   }
@@ -186,12 +193,15 @@ export default function AssessorPage() {
                 <span className="shrink-0 text-xs text-muted-foreground">{total} waiting</span>
               </div>
               <div className="relative h-[65vh] min-h-[520px] max-h-[900px]">
-                {frameUrls[current.id] ? (
-                  <iframe key={current.id} title={current.title} src={frameUrls[current.id] ?? undefined}
-                    className="h-full w-full border-0" allow="autoplay; fullscreen; gamepad; clipboard-read; clipboard-write"
+                {stagedGames.map(game => frameUrls[game.id] && (
+                  <iframe key={game.id} title={game.title} src={frameUrls[game.id] ?? undefined}
+                    className={"absolute inset-0 h-full w-full border-0 " + (game.id === current.id ? "z-10" : "pointer-events-none opacity-0")}
+                    aria-hidden={game.id !== current.id} tabIndex={game.id === current.id ? 0 : -1}
+                    loading="eager" allow="autoplay; fullscreen; gamepad; clipboard-read; clipboard-write"
                     sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-orientation-lock allow-presentation"
                     referrerPolicy="no-referrer" allowFullScreen />
-                ) : (
+                ))}
+                {!frameUrls[current.id] && (
                   <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-sm text-white/70">
                     <span>{frameUrls[current.id] === null ? "Could not load this game." : "Loading game…"}</span>
                     {frameUrls[current.id] === null && <Button variant="secondary" size="sm" onClick={() => retryFrame(current.id)}>Retry</Button>}
@@ -205,7 +215,7 @@ export default function AssessorPage() {
               <p className="mt-2 text-sm text-muted-foreground">Choose an answer to save the decision and load the next game.</p>
               <label htmlFor="assessor-note" className="mt-6 text-sm font-medium">Note (optional)</label>
               <textarea id="assessor-note" value={note} onChange={event => setNote(event.target.value)}
-                maxLength={2000} rows={3} placeholder="Describe what you found, if useful"
+                maxLength={2000} rows={3} disabled={saving} placeholder="Describe what you found, if useful"
                 className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
               <div className="mt-5 space-y-2">
                 <Button className="w-full justify-start" variant="outline" disabled={saving} onClick={() => void answer("clear")}>
