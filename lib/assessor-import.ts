@@ -20,27 +20,41 @@ function attribute(tag: string, name: string): string | null {
   return match ? decodeHtml(match[1]) : null;
 }
 
-function parseCatalog(html: string): { games: ImportedGame[]; next: string | null } {
+function cursorDate(url: string | null): string | null {
+  if (!url) return null;
+  const cursor = new URL(url, CATALOG).searchParams.get("cursor");
+  if (!cursor) return null;
+  try {
+    const value: unknown = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
+    if (!value || typeof value !== "object") return null;
+    const date = (value as { publishedAt?: unknown }).publishedAt;
+    return typeof date === "string" && Number.isFinite(Date.parse(date)) ? date : null;
+  } catch { return null; }
+}
+
+function parseCatalog(html: string, pageUrl: string): { games: ImportedGame[]; next: string | null } {
   const games: ImportedGame[] = [];
+  const more = html.match(/<a\b[^>]*\bdata-game-next(?:="")?[^>]*>/)?.[0];
+  const nextHref = more ? attribute(more, "href") : null;
+  const nextUrl = nextHref ? new URL(nextHref, CATALOG) : null;
+  if (nextUrl && (nextUrl.origin !== "https://playgama.ai" || nextUrl.pathname !== "/play" || !nextUrl.searchParams.has("cursor"))) {
+    throw new Error("Unexpected catalog pagination URL");
+  }
+  // Older catalog cards omit their own timestamp. The page cursor gives a date bound.
+  const fallbackDate = cursorDate(nextUrl?.toString() ?? null) ?? cursorDate(pageUrl);
   const cards = html.matchAll(/<a\b([^>]*\bclass="[^"]*\bcard\b[^"]*"[^>]*)>([\s\S]*?)<\/a>/g);
   for (const match of cards) {
     const href = attribute(match[1], "href");
     const id = attribute(match[1], "data-site-id");
     const title = match[2].match(/<span\b[^>]*class="[^"]*\bcard__title\b[^"]*"[^>]*>([\s\S]*?)<\/span>/)?.[1];
     const timeTag = match[2].match(/<time\b[^>]*>/)?.[0];
-    const published = timeTag ? attribute(timeTag, "datetime") : null;
+    const published = (timeTag ? attribute(timeTag, "datetime") : null) ?? fallbackDate;
     const cover = match[2].match(/<image\b[^>]*class="[^"]*\bcard__cover\b[^"]*"[^>]*>/)?.[0];
     if (!id || !/^[a-z0-9]{10}$/.test(id) || href !== `/play/${id}` || !title || !published || !Number.isFinite(Date.parse(published))) continue;
     const coverUrl = cover ? attribute(cover, "href") : null;
     games.push({ id, title: decodeHtml(title.replace(/<[^>]+>/g, "")).trim(), published_at: published,
       game_url: `${CATALOG}/${id}`, launch_url: null,
       cover_url: coverUrl?.startsWith("https://static.playgama.com/") ? coverUrl : null });
-  }
-  const more = html.match(/<a\b[^>]*\bdata-game-next(?:="")?[^>]*>/)?.[0];
-  const nextHref = more ? attribute(more, "href") : null;
-  const nextUrl = nextHref ? new URL(nextHref, CATALOG) : null;
-  if (nextUrl && (nextUrl.origin !== "https://playgama.ai" || nextUrl.pathname !== "/play" || !nextUrl.searchParams.has("cursor"))) {
-    throw new Error("Unexpected catalog pagination URL");
   }
   if (!games.length) throw new Error("Playgama catalog cards were not found");
   return { games, next: nextUrl?.toString() ?? null };
@@ -56,18 +70,25 @@ async function fetchHtml(url: string): Promise<string> {
   return response.text();
 }
 
-async function withLaunchUrl(game: ImportedGame): Promise<ImportedGame> {
-  try {
-    const html = await fetchHtml(game.game_url);
-    const frame = html.match(/<iframe\b[^>]*\bclass="[^"]*\bgame-frame\b[^"]*"[^>]*>/)?.[0];
-    const raw = frame ? attribute(frame, "data-game-url") : null;
-    if (!raw) return game;
-    const url = new URL(raw);
-    if (url.protocol !== "https:" || url.hostname !== `sb-${game.id}.games.playgama.net`) return game;
-    return { ...game, launch_url: url.toString() };
-  } catch {
-    return game;
+export async function resolveLaunchUrl(id: string): Promise<string> {
+  if (!/^[a-z0-9]{10}$/.test(id)) throw new Error("Invalid game ID");
+  const html = await fetchHtml(`${CATALOG}/${id}`);
+  const frame = html.match(/<iframe\b[^>]*\bclass="[^"]*\bgame-frame\b[^"]*"[^>]*>/)?.[0];
+  const raw = frame ? attribute(frame, "data-game-url") ?? attribute(frame, "src") : null;
+  if (!raw) throw new Error("Playgama game frame was not found");
+  const url = new URL(raw);
+  if (url.protocol !== "https:" || url.hostname !== `sb-${id}.games.playgama.net`) {
+    throw new Error("Unexpected game frame URL");
   }
+  // The Playgama page adds sandbox query parameters for its own origin.
+  // Its bare data-game-url is the playable iframe URL on another site.
+  url.search = "";
+  return url.toString();
+}
+
+async function withLaunchUrl(game: ImportedGame): Promise<ImportedGame> {
+  try { return { ...game, launch_url: await resolveLaunchUrl(game.id) }; }
+  catch { return game; }
 }
 
 async function insertPage(games: ImportedGame[]): Promise<void> {
@@ -86,7 +107,7 @@ export async function syncAssessorGames(claimedAt: string): Promise<{ added: num
   let reachedPrevious = false;
 
   for (let page = 0; page < PAGE_LIMIT && next; page++) {
-    const parsed = parseCatalog(await fetchHtml(next));
+    const parsed = parseCatalog(await fetchHtml(next), next);
     if (page === 0) { newestId = parsed.games[0].id; initialNext = parsed.next; }
     const stop = state?.newest_id ? parsed.games.findIndex(game => game.id === state.newest_id) : -1;
     const newGames = stop >= 0 ? parsed.games.slice(0, stop) : parsed.games;
@@ -102,7 +123,7 @@ export async function syncAssessorGames(claimedAt: string): Promise<{ added: num
   let backfillDone = state?.newest_id ? state.backfill_done : !initialNext;
   if (!backfillDone && backfillCursor) {
     for (let page = 0; page < BACKFILL_PAGES && backfillCursor; page++) {
-      const parsed = parseCatalog(await fetchHtml(backfillCursor));
+      const parsed = parseCatalog(await fetchHtml(backfillCursor), backfillCursor);
       await insertPage(parsed.games);
       added += parsed.games.length;
       scanned += parsed.games.length;

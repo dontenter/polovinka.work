@@ -15,6 +15,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Assessor list failed:", error);
-    return NextResponse.json({ error: "Не удалось загрузить игры" }, { status: 500 });
+    return NextResponse.json({ error: "Could not load games" }, { status: 500 });
   }
 }

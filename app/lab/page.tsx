@@ -5,8 +5,8 @@ import { Gamepad2, ImageIcon, Wrench, LogOut, FileText, ShieldCheck } from "luci
 
 const comingSoonTools = [
   {
-    title: "Кабинет ассесора",
-    description: "Проверка новых игр Playgama.ai на запрещённый контент и архив решений.",
+    title: "Content Assessor",
+    description: "Review new Playgama.ai games for prohibited content and browse past decisions.",
     icon: ShieldCheck,
     href: "/lab/assessor",
   },

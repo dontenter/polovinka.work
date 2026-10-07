@@ -22,6 +22,6 @@ export async function POST(request: NextRequest) {
       catch (releaseError) { console.error("Assessor sync release failed:", releaseError); }
     }
     console.error("Assessor sync failed:", error);
-    return NextResponse.json({ error: "Не удалось проверить новые игры" }, { status: 500 });
+    return NextResponse.json({ error: "Could not check for new games" }, { status: 500 });
   }
 }

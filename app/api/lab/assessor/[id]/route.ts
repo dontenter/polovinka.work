@@ -17,16 +17,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
   const status = body.status;
   const reason = typeof body.reason === "string" ? body.reason.trim() : "";
-  if (!status || !["pending", "clear", "flagged", "unavailable"].includes(status) || reason.length > 2000 ||
-      ((status === "flagged" || status === "unavailable") && !reason)) {
-    return NextResponse.json({ error: "Укажите решение и причину" }, { status: 400 });
+  if (!status || !["pending", "clear", "flagged", "unavailable"].includes(status) || reason.length > 2000) {
+    return NextResponse.json({ error: "Invalid review" }, { status: 400 });
   }
   try {
-    if (!(await getGame(id))) return NextResponse.json({ error: "Игра не найдена" }, { status: 404 });
+    if (!(await getGame(id))) return NextResponse.json({ error: "Game not found" }, { status: 404 });
     await reviewGame(id, status, reason);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Assessor review failed:", error);
-    return NextResponse.json({ error: "Не удалось сохранить решение" }, { status: 500 });
+    return NextResponse.json({ error: "Could not save review" }, { status: 500 });
   }
 }
