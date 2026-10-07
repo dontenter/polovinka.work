@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Gamepad2, ImageIcon, Wrench, LogOut, FileText } from "lucide-react";
+import { Gamepad2, ImageIcon, Wrench, LogOut, FileText, ShieldCheck } from "lucide-react";
 
 const comingSoonTools = [
+  {
+    title: "Кабинет ассесора",
+    description: "Проверка новых игр Playgama.ai на запрещённый контент и архив решений.",
+    icon: ShieldCheck,
+    href: "/lab/assessor",
+  },
   {
     title: "Game Testing",
     description: "Game rating and feedback system for developers",
