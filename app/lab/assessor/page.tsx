@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, CheckCircle2, RefreshCw, Search, Star, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Heart, RefreshCw, Search, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -14,7 +14,7 @@ type Game = {
 const historyFilters: { id: HistoryStatus; label: string }[] = [
   { id: "flagged", label: "Flagged" },
   { id: "clear", label: "No prohibited content" },
-  { id: "unavailable", label: "Could not assess" },
+  { id: "unavailable", label: "Not loading" },
   { id: "favourites", label: "Favourites" },
 ];
 const slideDuration = 500;
@@ -35,6 +35,8 @@ export default function AssessorPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
+  const [noteOpen, setNoteOpen] = useState(false);
+  const noteDialog = useRef<HTMLDialogElement>(null);
   const [saving, setSaving] = useState(false);
   const [favouriteSaving, setFavouriteSaving] = useState<string | null>(null);
   const [slide, setSlide] = useState<{ from: Game; toId: string } | null>(null);
@@ -125,6 +127,13 @@ export default function AssessorPage() {
     if (slideTimer.current !== null) window.clearTimeout(slideTimer.current);
   }, []);
 
+  useEffect(() => {
+    const dialog = noteDialog.current;
+    if (!dialog) return;
+    if (noteOpen && !dialog.open) dialog.showModal();
+    if (!noteOpen && dialog.open) dialog.close();
+  }, [noteOpen]);
+
   function retryFrame(id: string) {
     requestedFrames.current.delete(id);
     setFrameUrls(previous => {
@@ -134,12 +143,11 @@ export default function AssessorPage() {
     });
   }
 
-  async function answer(decision: Exclude<Status, "pending">) {
+  async function answer(decision: Exclude<Status, "pending">, reviewedNote = "") {
     if (!current || saving || slide) return;
     const reviewedGame = current;
     const reviewedId = reviewedGame.id;
     const nextId = nextGame?.id ?? null;
-    const reviewedNote = note;
     setSaving(true);
     setError("");
     if (nextId) {
@@ -169,6 +177,7 @@ export default function AssessorPage() {
       setCurrentId(reviewedId);
       setTotal(previous => previous + 1);
       setNote(reviewedNote);
+      if (decision === "flagged") setNoteOpen(true);
       setError(cause instanceof Error ? cause.message : "Could not save review");
     } finally { setSaving(false); }
   }
@@ -194,7 +203,7 @@ export default function AssessorPage() {
   }
 
   function switchView(next: "review" | "history") {
-    setView(next); setPage(1); setGames([]); setError(""); setNote("");
+    setView(next); setPage(1); setGames([]); setError(""); setNote(""); setNoteOpen(false);
   }
 
   return (
@@ -262,27 +271,29 @@ export default function AssessorPage() {
               </div>
             </section>
             <aside className="flex h-fit flex-col rounded-xl border bg-card p-5 lg:sticky lg:top-5">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Content review</p>
+              <div className="mb-2 flex items-start justify-between gap-3">
+                <p className="pt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Content review</p>
+                <Button variant="ghost" size="icon" className="shrink-0 rounded-full hover:text-rose-500"
+                  disabled={favouriteSaving === current.id || Boolean(slide)}
+                  aria-label={current.is_favourite ? "Remove from favourites" : "Add to favourites"}
+                  aria-pressed={current.is_favourite} title={current.is_favourite ? "Remove from favourites" : "Add to favourites"}
+                  onClick={() => void toggleFavourite(current)}>
+                  <Heart className={current.is_favourite ? "fill-current text-rose-500" : ""} />
+                </Button>
+              </div>
               <h2 className="text-xl font-semibold leading-snug">Does this game contain prohibited content?</h2>
-              <p className="mt-2 text-sm text-muted-foreground">Choose an answer to save the decision and load the next game.</p>
-              <Button className="mt-5 w-full justify-start" variant="outline" disabled={favouriteSaving === current.id || Boolean(slide)}
-                aria-pressed={current.is_favourite} onClick={() => void toggleFavourite(current)}>
-                <Star className={"mr-3 h-4 w-4 " + (current.is_favourite ? "fill-current text-amber-500" : "")} />
-                {current.is_favourite ? "Remove from favourites" : "Add to favourites"}
-              </Button>
-              <label htmlFor="assessor-note" className="mt-6 text-sm font-medium">Note (optional)</label>
-              <textarea id="assessor-note" value={note} onChange={event => setNote(event.target.value)}
-                maxLength={2000} rows={3} disabled={saving || Boolean(slide)} placeholder="Describe what you found, if useful"
-                className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+              <p className="mt-2 text-sm text-muted-foreground">Choose an answer to continue to the next game.</p>
               <div className="mt-5 space-y-2">
                 <Button className="w-full justify-start" variant="outline" disabled={saving || Boolean(slide)} onClick={() => void answer("clear")}>
                   <CheckCircle2 className="mr-3 h-4 w-4" /> No
                 </Button>
-                <Button className="w-full justify-start" variant="outline" disabled={saving || Boolean(slide)} onClick={() => void answer("flagged")}>
+                <Button className="w-full justify-start" variant="outline" disabled={saving || Boolean(slide)} onClick={() => setNoteOpen(true)}>
                   <AlertTriangle className="mr-3 h-4 w-4" /> Yes / Unsure
                 </Button>
-                <Button className="w-full justify-start" variant="outline" disabled={saving || Boolean(slide)} onClick={() => void answer("unavailable")}>
-                  <XCircle className="mr-3 h-4 w-4" /> Could not assess
+              </div>
+              <div className="mt-6 border-t pt-4">
+                <Button className="w-full justify-start text-muted-foreground" variant="ghost" disabled={saving || Boolean(slide)} onClick={() => void answer("unavailable")}>
+                  <XCircle className="mr-3 h-4 w-4" /> Not loading
                 </Button>
               </div>
               {saving && <p className="mt-3 text-sm text-muted-foreground">Saving decision…</p>}
@@ -321,7 +332,7 @@ export default function AssessorPage() {
                     Reviewed {game.reviewed_at ? formatDate(game.reviewed_at) : "—"} · Added to queue {formatDate(game.first_seen_at)}
                   </p>
                   {historyStatus === "favourites" && <p className="mt-1 text-xs text-muted-foreground">
-                    Decision: {game.status === "clear" ? "No prohibited content" : game.status === "flagged" ? "Flagged" : "Could not assess"}
+                    Decision: {game.status === "clear" ? "No prohibited content" : game.status === "flagged" ? "Flagged" : "Not loading"}
                   </p>}
                   {game.reason && <p className="mt-2 text-sm">{game.reason}</p>}
                 </div>
@@ -329,7 +340,7 @@ export default function AssessorPage() {
                   <Button variant="ghost" size="icon" disabled={favouriteSaving === game.id}
                     aria-label={game.is_favourite ? `Remove ${game.title} from favourites` : `Add ${game.title} to favourites`}
                     aria-pressed={game.is_favourite} onClick={() => void toggleFavourite(game)}>
-                    <Star className={game.is_favourite ? "fill-current text-amber-500" : "text-muted-foreground"} />
+                    <Heart className={game.is_favourite ? "fill-current text-rose-500" : "text-muted-foreground"} />
                   </Button>
                   <span className="text-xs text-muted-foreground">ID {game.id}</span>
                 </div>
@@ -343,6 +354,28 @@ export default function AssessorPage() {
           </div>}
         </section>
       )}
+      <dialog ref={noteDialog} aria-labelledby="assessor-note-title"
+        onClose={() => { setNoteOpen(false); setNote(""); }}
+        className="w-[calc(100%-2rem)] max-w-lg rounded-xl border bg-card p-6 text-foreground shadow-2xl backdrop:bg-black/60">
+        <form onSubmit={event => {
+          event.preventDefault();
+          const reviewNote = note;
+          setNoteOpen(false);
+          void answer("flagged", reviewNote);
+        }}>
+          <h2 id="assessor-note-title" className="text-xl font-semibold">Yes / Unsure</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Add a note about the content if useful.</p>
+          <label htmlFor="assessor-note" className="mt-5 block text-sm font-medium">Note (optional)</label>
+          <textarea id="assessor-note" value={note} onChange={event => setNote(event.target.value)}
+            maxLength={2000} rows={4} autoFocus placeholder="Describe what you found"
+            className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+          {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
+          <div className="mt-5 flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setNoteOpen(false)}>Cancel</Button>
+            <Button type="submit">Save and continue</Button>
+          </div>
+        </form>
+      </dialog>
     </main>
   );
 }
