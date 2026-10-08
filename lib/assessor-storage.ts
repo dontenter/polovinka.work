@@ -1,6 +1,7 @@
 import "server-only";
 
 export type AssessorStatus = "pending" | "clear" | "flagged" | "unavailable";
+export type AssessorListStatus = AssessorStatus | "favourites";
 export type AssessorGame = {
   id: string;
   title: string;
@@ -12,6 +13,7 @@ export type AssessorGame = {
   status: AssessorStatus;
   reason: string | null;
   reviewed_at: string | null;
+  is_favourite: boolean;
 };
 export type ImportedGame = Pick<AssessorGame, "id" | "title" | "published_at" | "game_url" | "launch_url" | "cover_url">;
 export type SyncState = { id: 1; newest_id: string | null; backfill_cursor: string | null; backfill_done: boolean; updated_at: string };
@@ -43,8 +45,9 @@ async function db(table: string, query = "", init: RequestInit = {}): Promise<Re
   return response;
 }
 
-export async function listGames(status: AssessorStatus, search: string, page: number) {
-  const params = new URLSearchParams({ select: "*", status: `eq.${status}`, order: status === "pending" ? "published_at.desc" : "reviewed_at.desc", limit: "30", offset: String((page - 1) * 30) });
+export async function listGames(status: AssessorListStatus, search: string, page: number) {
+  const params = new URLSearchParams({ select: "*", status: status === "favourites" ? "neq.pending" : `eq.${status}`, order: status === "pending" ? "published_at.desc" : "reviewed_at.desc", limit: "30", offset: String((page - 1) * 30) });
+  if (status === "favourites") params.set("is_favourite", "eq.true");
   if (search) params.set("title", `ilike.*${search.replace(/[*,()]/g, "").slice(0, 100)}*`);
   const response = await db("assessor_games", `?${params}`, { headers: { Prefer: "count=exact" } });
   const games: AssessorGame[] = await response.json();
@@ -60,6 +63,10 @@ export async function getGame(id: string): Promise<AssessorGame | null> {
 
 export async function reviewGame(id: string, status: AssessorStatus, reason: string): Promise<void> {
   await db("assessor_games", `?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ status, reason: reason || null, reviewed_at: status === "pending" ? null : new Date().toISOString() }) });
+}
+
+export async function setGameFavourite(id: string, favourite: boolean): Promise<void> {
+  await db("assessor_games", `?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ is_favourite: favourite }) });
 }
 
 export async function getSyncState(): Promise<SyncState | null> {
