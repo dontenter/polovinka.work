@@ -51,7 +51,7 @@ export default function AssessorPage() {
   const status: Status | "favourites" = view === "review" ? "pending" : historyStatus;
   const current = view === "review" ? games.find(game => game.id === currentId) ?? games[0] : undefined;
   const nextGame = current ? games.find(game => game.id !== current.id) : undefined;
-  const stagedGames = [slide?.from, current, nextGame]
+  const stagedGames = [current, nextGame]
     .filter((game): game is Game => Boolean(game))
     .filter((game, index, all) => all.findIndex(other => other.id === game.id) === index);
 
@@ -117,9 +117,11 @@ export default function AssessorPage() {
         .then(async response => {
           const data = await response.json();
           if (!response.ok || typeof data.url !== "string") throw new Error("Could not load game");
-          setFrameUrls(previous => ({ ...previous, [id]: data.url }));
+          if (requestedFrames.current.has(id)) setFrameUrls(previous => ({ ...previous, [id]: data.url }));
         })
-        .catch(() => setFrameUrls(previous => ({ ...previous, [id]: null })));
+        .catch(() => {
+          if (requestedFrames.current.has(id)) setFrameUrls(previous => ({ ...previous, [id]: null }));
+        });
     }
   }, [view, current?.id, nextGame?.id, frameUrls]);
 
@@ -168,6 +170,12 @@ export default function AssessorPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not save review");
+      requestedFrames.current.delete(reviewedId);
+      setFrameUrls(previous => {
+        const next = { ...previous };
+        delete next[reviewedId];
+        return next;
+      });
       setReloadVersion(value => value + 1);
     } catch (cause) {
       if (slideTimer.current !== null) window.clearTimeout(slideTimer.current);
@@ -239,13 +247,9 @@ export default function AssessorPage() {
               <div className="relative h-[calc(65vh+4rem)] min-h-[584px] max-h-[964px]">
                 {stagedGames.map(game => {
                   const active = game.id === current.id;
-                  const position = slide?.from.id === game.id ? "-translate-y-full" : active ? "translate-y-0" : "translate-y-full";
-                  // Keep preloaded frames out of hit testing without making their documents inert.
-                  const interaction = slide?.from.id === game.id ? "z-20 pointer-events-none" : active ? "z-10 pointer-events-auto" : "z-0 pointer-events-none";
                   return (
                     <div key={game.id} aria-hidden={!active}
-                      style={{ transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)" }}
-                      className={"absolute inset-0 flex h-full flex-col bg-black transition-transform duration-500 motion-reduce:transition-none " + position + " " + interaction}>
+                      className={"absolute inset-0 flex h-full flex-col bg-black " + (active ? "z-10 visible pointer-events-auto" : "z-0 invisible pointer-events-none")}>
                       <div className="flex h-16 shrink-0 items-center justify-between gap-3 bg-card px-4 text-foreground">
                         <div className="min-w-0">
                           <h2 className="truncate font-semibold">{game.title}</h2>
@@ -270,6 +274,14 @@ export default function AssessorPage() {
                     </div>
                   );
                 })}
+                {slide?.toId === current.id && (
+                  <div aria-hidden="true" className="assessor-slide-cover pointer-events-none absolute inset-0 z-20 flex flex-col bg-black">
+                    <div className="flex h-16 shrink-0 items-center bg-card px-4 text-foreground">
+                      <span className="truncate font-semibold">{slide.from.title}</span>
+                    </div>
+                    <div className="min-h-0 flex-1 bg-neutral-950" />
+                  </div>
+                )}
               </div>
             </section>
             <aside className="flex h-fit flex-col rounded-xl border bg-card p-5 lg:sticky lg:top-5">
