@@ -240,10 +240,12 @@ export default function AssessorPage() {
                 {stagedGames.map(game => {
                   const active = game.id === current.id;
                   const position = slide?.from.id === game.id ? "-translate-y-full" : active ? "translate-y-0" : "translate-y-full";
+                  // Keep preloaded frames out of hit testing without making their documents inert.
+                  const interaction = slide?.from.id === game.id ? "z-20 pointer-events-none" : active ? "z-10 pointer-events-auto" : "z-0 pointer-events-none";
                   return (
-                    <div key={game.id} aria-hidden={!active} inert={!active}
+                    <div key={game.id} aria-hidden={!active}
                       style={{ transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)" }}
-                      className={"absolute inset-0 flex h-full flex-col bg-black transition-transform duration-500 motion-reduce:transition-none " + position}>
+                      className={"absolute inset-0 flex h-full flex-col bg-black transition-transform duration-500 motion-reduce:transition-none " + position + " " + interaction}>
                       <div className="flex h-16 shrink-0 items-center justify-between gap-3 bg-card px-4 text-foreground">
                         <div className="min-w-0">
                           <h2 className="truncate font-semibold">{game.title}</h2>
