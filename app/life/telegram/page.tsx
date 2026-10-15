@@ -26,7 +26,7 @@ export default async function TelegramPage({ searchParams }: { searchParams: Pro
     <Link href="/life" className="text-sm text-muted-foreground hover:text-foreground">← Life</Link>
     <h1 className="mt-5 text-3xl font-semibold">Telegram Summary</h1>
     <p className="mt-3 text-muted-foreground">AI Game Universe · PG • Business · Афиша Бали</p>
-    <p className="mt-2 text-sm text-muted-foreground">{process.env.LIFE_AUTOMATION_ENABLED === "true" ? "Каждый день в 08:00 по Бали · доставка в Избранное Telegram" : "Планируемое время — 08:00 по Бали. Автоматическая доставка ещё не включена."}</p>
+    <p className="mt-2 text-sm text-muted-foreground">{process.env.LIFE_AUTOMATION_ENABLED === "true" ? "Каждый день в 08:00 по Бали · доставка в Избранное Telegram" : "Автоматический сбор и доставка отключены. Сохранённые дайджесты доступны в архиве."}</p>
     {status ? <p className="mt-2 text-sm text-muted-foreground">{status.sent_at ? `Последний дайджест отправлен: ${readable(status.day.replaceAll("-", ""))}` : status.error ? "Не удалось отправить дайджест. Сервис повторит попытку в утреннее окно; после пяти попыток нужна проверка." : "Дайджест готовится к отправке."}</p> : null}
     {error ? <p role="alert" className="mt-8 rounded-xl border p-6">{error}</p> : null}
     {!error && !archive.items.length && !digest ? <div className="mt-10 rounded-xl border border-dashed p-10 text-center">

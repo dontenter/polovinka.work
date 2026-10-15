@@ -1,5 +1,7 @@
 # Life deployment
 
+Current status (2026-10-15): automatic collection and delivery disabled at user request. Production LIFE_AUTOMATION_ENABLED=false; Telegram cron removed. Archive retained. The activation steps below are for an explicit future re-enable.
+
 Implemented: /life dashboard, /life/telegram archive, protected POST /api/life/digests importer.
 Implemented: Vercel cron collector, OpenAI server generation, and delivery to Telegram Saved Messages.
 The local Python project remains the source of trial digests. Do not upload its .private directory or sessions into this repository.
