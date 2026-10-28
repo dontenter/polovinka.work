@@ -28,6 +28,15 @@ export default async function TelegramPage({ searchParams }: { searchParams: Pro
     <p className="mt-3 text-muted-foreground">AI Game Universe · PG • Business · Афиша Бали</p>
     <p className="mt-2 text-sm text-muted-foreground">{process.env.LIFE_AUTOMATION_ENABLED === "true" ? "Каждый день в 08:00 по Бали · доставка в Избранное Telegram" : "Автоматический сбор и доставка отключены. Сохранённые дайджесты доступны в архиве."}</p>
     {status ? <p className="mt-2 text-sm text-muted-foreground">{status.sent_at ? `Последний дайджест отправлен: ${readable(status.day.replaceAll("-", ""))}` : status.error ? "Не удалось отправить дайджест. Сервис повторит попытку в утреннее окно; после пяти попыток нужна проверка." : "Дайджест готовится к отправке."}</p> : null}
+    <section className="mt-8" aria-label="Игра Playgama">
+      <iframe
+        src="https://playgama.ai/play/qrlpdpk5kq"
+        title="Игра Playgama"
+        allow="autoplay; fullscreen"
+        allowFullScreen
+        className="block h-[70svh] min-h-96 w-full rounded-xl border"
+      />
+    </section>
     {error ? <p role="alert" className="mt-8 rounded-xl border p-6">{error}</p> : null}
     {!error && !archive.items.length && !digest ? <div className="mt-10 rounded-xl border border-dashed p-10 text-center">
       <h2 className="font-medium">Здесь появится первый дайджест</h2>
