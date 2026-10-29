@@ -1,7 +1,7 @@
 import "server-only";
 
 export type AssessorStatus = "pending" | "clear" | "flagged" | "unavailable";
-export type AssessorListStatus = AssessorStatus | "favourites";
+export type AssessorListStatus = AssessorStatus | "favourites" | "ai-slope";
 export type AssessorGame = {
   id: string;
   title: string;
@@ -14,6 +14,7 @@ export type AssessorGame = {
   reason: string | null;
   reviewed_at: string | null;
   is_favourite: boolean;
+  is_ai_slop: boolean;
 };
 export type ImportedGame = Pick<AssessorGame, "id" | "title" | "published_at" | "game_url" | "launch_url" | "cover_url">;
 export type SyncState = { id: 1; newest_id: string | null; backfill_cursor: string | null; backfill_done: boolean; updated_at: string };
@@ -46,8 +47,9 @@ async function db(table: string, query = "", init: RequestInit = {}): Promise<Re
 }
 
 export async function listGames(status: AssessorListStatus, search: string, page: number) {
-  const params = new URLSearchParams({ select: "*", status: status === "favourites" ? "neq.pending" : `eq.${status}`, order: status === "pending" ? "published_at.desc" : "reviewed_at.desc", limit: "30", offset: String((page - 1) * 30) });
+  const params = new URLSearchParams({ select: "*", status: (status === "favourites" || status === "ai-slope") ? "neq.pending" : `eq.${status}`, order: status === "pending" ? "published_at.desc" : "reviewed_at.desc", limit: "30", offset: String((page - 1) * 30) });
   if (status === "favourites") params.set("is_favourite", "eq.true");
+  if (status === "ai-slope") params.set("is_ai_slop", "eq.true");
   if (search) params.set("title", `ilike.*${search.replace(/[*,()]/g, "").slice(0, 100)}*`);
   const response = await db("assessor_games", `?${params}`, { headers: { Prefer: "count=exact" } });
   const games: AssessorGame[] = await response.json();
@@ -56,17 +58,35 @@ export async function listGames(status: AssessorListStatus, search: string, page
   return { games, total };
 }
 
+export async function hasPreviouslyImportedGame(ids: string[], before: string): Promise<boolean> {
+  if (!ids.length) return false;
+  const params = new URLSearchParams({ select: "id", id: `in.(${ids.join(",")})`, first_seen_at: `lte.${before}`, limit: "1" });
+  const rows: Pick<AssessorGame, "id">[] = await (await db("assessor_games", `?${params}`)).json();
+  return rows.length > 0;
+}
+
 export async function getGame(id: string): Promise<AssessorGame | null> {
   const rows: AssessorGame[] = await (await db("assessor_games", `?id=eq.${id}&select=*&limit=1`)).json();
   return rows[0] ?? null;
 }
 
-export async function reviewGame(id: string, status: AssessorStatus, reason: string): Promise<void> {
-  await db("assessor_games", `?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ status, reason: reason || null, reviewed_at: status === "pending" ? null : new Date().toISOString() }) });
+async function updateGame(id: string, update: Partial<AssessorGame>): Promise<boolean> {
+  const response = await db("assessor_games", `?id=eq.${id}&select=id`, {
+    method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(update),
+  });
+  const rows: Pick<AssessorGame, "id">[] = await response.json();
+  return rows.length > 0;
 }
 
-export async function setGameFavourite(id: string, favourite: boolean): Promise<void> {
-  await db("assessor_games", `?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ is_favourite: favourite }) });
+export async function reviewGame(id: string, status: AssessorStatus, reason: string): Promise<boolean> {
+  return updateGame(id, { status, reason: reason || null, reviewed_at: status === "pending" ? null : new Date().toISOString() });
+}
+
+export async function setGameQuality(id: string, kind: "favourite" | "aiSlop", selected: boolean): Promise<boolean> {
+  const update = kind === "favourite"
+    ? { is_favourite: selected, ...(selected ? { is_ai_slop: false } : {}) }
+    : { is_ai_slop: selected, ...(selected ? { is_favourite: false } : {}) };
+  return updateGame(id, update);
 }
 
 export async function getSyncState(): Promise<SyncState | null> {

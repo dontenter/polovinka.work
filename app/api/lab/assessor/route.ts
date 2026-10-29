@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   if (!(await assessorAuthorized(request))) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const params = request.nextUrl.searchParams;
   const status = params.get("status") ?? "pending";
-  if (!["pending", "clear", "flagged", "unavailable", "favourites"].includes(status)) return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+  if (!["pending", "clear", "flagged", "unavailable", "favourites", "ai-slope"].includes(status)) return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   const page = Math.max(1, Math.min(10000, Number(params.get("page")) || 1));
   try {
     const result = await listGames(status as AssessorListStatus, params.get("search")?.trim() ?? "", page);

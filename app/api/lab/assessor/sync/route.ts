@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const attempt = await claimAssessorSync();
     claim = attempt.claim;
     if (!claim) return NextResponse.json({ status: "recent", nextCheckAt: attempt.nextCheckAt });
-    const result = await syncAssessorGames(claim.claimedAt);
+    const result = await syncAssessorGames(claim.claimedAt, claim.previousUpdatedAt);
     return NextResponse.json({ status: "updated", ...result }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if (claim) {

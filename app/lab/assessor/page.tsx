@@ -1,21 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, CheckCircle2, Heart, RefreshCw, Search, XCircle } from "lucide-react";
+import { Heart, RefreshCw, Search, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 type Status = "pending" | "clear" | "flagged" | "unavailable";
-type HistoryStatus = Exclude<Status, "pending"> | "favourites";
+type HistoryStatus = Exclude<Status, "pending"> | "favourites" | "ai-slope";
 type Game = {
   id: string; title: string; published_at: string; game_url: string; launch_url: string | null;
-  first_seen_at: string; status: Status; reason: string | null; reviewed_at: string | null; is_favourite: boolean;
+  first_seen_at: string; status: Status; reason: string | null; reviewed_at: string | null; is_favourite: boolean; is_ai_slop: boolean;
 };
 const historyFilters: { id: HistoryStatus; label: string }[] = [
   { id: "flagged", label: "Flagged" },
   { id: "clear", label: "No prohibited content" },
   { id: "unavailable", label: "Not loading" },
-  { id: "favourites", label: "Favourites" },
+  { id: "favourites", label: "❤️ Good games" },
+  { id: "ai-slope", label: "💩 AI-slope" },
 ];
 const slideDuration = 500;
 const formatDate = (value: string) =>
@@ -38,7 +39,7 @@ export default function AssessorPage() {
   const [noteOpen, setNoteOpen] = useState(false);
   const noteDialog = useRef<HTMLDialogElement>(null);
   const [saving, setSaving] = useState(false);
-  const [favouriteSaving, setFavouriteSaving] = useState<string | null>(null);
+  const [qualitySaving, setQualitySaving] = useState<string | null>(null);
   const [slide, setSlide] = useState<{ from: Game; toId: string } | null>(null);
   const slideTimer = useRef<number | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -48,7 +49,7 @@ export default function AssessorPage() {
   const syncingRef = useRef(false);
   const loadSequence = useRef(0);
 
-  const status: Status | "favourites" = view === "review" ? "pending" : historyStatus;
+  const status: Status | "favourites" | "ai-slope" = view === "review" ? "pending" : historyStatus;
   const current = view === "review" ? games.find(game => game.id === currentId) ?? games[0] : undefined;
   const nextGame = current ? games.find(game => game.id !== current.id) : undefined;
   const stagedGames = [current, nextGame]
@@ -88,7 +89,8 @@ export default function AssessorPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not check for new games");
       if (data.status === "updated") {
-        setSyncMessage(data.added ? "New games added: " + data.added : "No new games found");
+        setSyncMessage((data.added ? "New games added: " + data.added : "No new games found") +
+          (data.backfillDone === false ? ". Catching up; remaining games will be checked on the next sync." : ""));
         setReloadVersion(value => value + 1);
       } else setSyncMessage("Catalog checked within the last 5 minutes");
     } catch (cause) {
@@ -190,24 +192,28 @@ export default function AssessorPage() {
     } finally { setSaving(false); }
   }
 
-  async function toggleFavourite(game: Game) {
-    if (favouriteSaving === game.id) return;
-    const favourite = !game.is_favourite;
-    setFavouriteSaving(game.id);
+  async function toggleQuality(game: Game, kind: "favourite" | "aiSlop") {
+    if (qualitySaving || saving || slide) return;
+    const selected = !(kind === "favourite" ? game.is_favourite : game.is_ai_slop);
+    const update = kind === "favourite"
+      ? { is_favourite: selected, is_ai_slop: selected ? false : game.is_ai_slop }
+      : { is_ai_slop: selected, is_favourite: selected ? false : game.is_favourite };
+    setQualitySaving(game.id);
     setError("");
-    setGames(previous => previous.map(item => item.id === game.id ? { ...item, is_favourite: favourite } : item));
+    setGames(previous => previous.map(item => item.id === game.id ? { ...item, ...update } : item));
     try {
       const response = await fetch("/api/lab/assessor/" + game.id, {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ favourite }),
+        body: JSON.stringify({ [kind]: selected }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Could not update favourites");
-      if (view === "history" && historyStatus === "favourites" && !favourite) setReloadVersion(value => value + 1);
+      if (!response.ok) throw new Error(data.error || "Could not save quality mark");
+      if (view === "history" && (historyStatus === "favourites" || historyStatus === "ai-slope")) setReloadVersion(value => value + 1);
     } catch (cause) {
-      setGames(previous => previous.map(item => item.id === game.id ? { ...item, is_favourite: game.is_favourite } : item));
-      setError(cause instanceof Error ? cause.message : "Could not update favourites");
-    } finally { setFavouriteSaving(null); }
+      setGames(previous => previous.map(item => item.id === game.id
+        ? { ...item, is_favourite: game.is_favourite, is_ai_slop: game.is_ai_slop } : item));
+      setError(cause instanceof Error ? cause.message : "Could not save quality mark");
+    } finally { setQualitySaving(null); }
   }
 
   function switchView(next: "review" | "history") {
@@ -227,11 +233,11 @@ export default function AssessorPage() {
         </Button>
       </div>
       <div className="mb-5 flex items-center gap-2 border-b pb-4">
-        <button type="button" onClick={() => switchView("review")}
+        <button type="button" disabled={saving || Boolean(qualitySaving) || Boolean(slide)} onClick={() => switchView("review")}
           className={"rounded-md px-4 py-2 text-sm font-medium " + (view === "review" ? "bg-foreground text-background" : "hover:bg-muted")}>
           Review {view === "review" && !loading ? "(" + total + ")" : ""}
         </button>
-        <button type="button" onClick={() => switchView("history")}
+        <button type="button" disabled={saving || Boolean(qualitySaving) || Boolean(slide)} onClick={() => switchView("history")}
           className={"rounded-md px-4 py-2 text-sm font-medium " + (view === "history" ? "bg-foreground text-background" : "hover:bg-muted")}>
           History
         </button>
@@ -285,28 +291,37 @@ export default function AssessorPage() {
               </div>
             </section>
             <aside className="flex h-fit flex-col rounded-xl border bg-card p-5 lg:sticky lg:top-5">
-              <div className="mb-2 flex items-start justify-between gap-3">
-                <p className="pt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Content review</p>
-                <Button variant="ghost" size="icon" className="shrink-0 rounded-full hover:text-rose-500"
-                  disabled={favouriteSaving === current.id || Boolean(slide)}
-                  aria-label={current.is_favourite ? "Remove from favourites" : "Add to favourites"}
-                  aria-pressed={current.is_favourite} title={current.is_favourite ? "Remove from favourites" : "Add to favourites"}
-                  onClick={() => void toggleFavourite(current)}>
-                  <Heart className={current.is_favourite ? "fill-current text-rose-500" : ""} />
+              <div className="grid grid-cols-2 gap-3">
+                <Button variant="outline"
+                  className={"h-24 w-full flex-col gap-2 rounded-xl whitespace-normal " + (current.is_favourite ? "border-rose-400 bg-rose-50 text-rose-700 hover:bg-rose-100" : "")}
+                  disabled={Boolean(qualitySaving) || saving || Boolean(slide)}
+                  aria-label="Good game" aria-pressed={current.is_favourite}
+                  onClick={() => void toggleQuality(current, "favourite")}>
+                  <span aria-hidden="true" className="text-3xl">❤️</span>
+                </Button>
+                <Button variant="outline"
+                  className={"h-24 w-full flex-col gap-2 rounded-xl whitespace-normal " + (current.is_ai_slop ? "border-amber-400 bg-amber-50 text-amber-800 hover:bg-amber-100" : "")}
+                  disabled={Boolean(qualitySaving) || saving || Boolean(slide)}
+                  aria-label="AI-slope" aria-pressed={Boolean(current.is_ai_slop)}
+                  onClick={() => void toggleQuality(current, "aiSlop")}>
+                  <span aria-hidden="true" className="text-3xl">💩</span>
                 </Button>
               </div>
-              <h2 className="text-xl font-semibold leading-snug">Does this game contain prohibited content?</h2>
-              <p className="mt-2 text-sm text-muted-foreground">Choose an answer to continue to the next game.</p>
-              <div className="mt-5 space-y-2">
-                <Button className="w-full justify-start" variant="outline" disabled={saving || Boolean(slide)} onClick={() => void answer("clear")}>
-                  <CheckCircle2 className="mr-3 h-4 w-4" /> No
+              <h2 className="mt-5 border-t pt-5 text-xl font-semibold leading-snug">Does this game contain prohibited content?</h2>
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <Button className="aspect-square h-auto w-full flex-col gap-3 whitespace-normal rounded-xl text-base" variant="outline"
+                  disabled={saving || Boolean(slide) || Boolean(qualitySaving)} onClick={() => void answer("clear")}>
+                  <span aria-hidden="true" className="text-5xl">✅</span>
+                  <span>All Good</span>
                 </Button>
-                <Button className="w-full justify-start" variant="outline" disabled={saving || Boolean(slide)} onClick={() => setNoteOpen(true)}>
-                  <AlertTriangle className="mr-3 h-4 w-4" /> Yes / Unsure
+                <Button className="aspect-square h-auto w-full flex-col gap-3 whitespace-normal rounded-xl text-base" variant="outline"
+                  disabled={saving || Boolean(slide) || Boolean(qualitySaving)} onClick={() => setNoteOpen(true)}>
+                  <span aria-hidden="true" className="text-5xl">❗</span>
+                  <span>Prohibited content</span>
                 </Button>
               </div>
               <div className="mt-6 border-t pt-4">
-                <Button className="w-full justify-start text-muted-foreground" variant="ghost" disabled={saving || Boolean(slide)} onClick={() => void answer("unavailable")}>
+                <Button className="w-full justify-start text-muted-foreground" variant="ghost" disabled={saving || Boolean(slide) || Boolean(qualitySaving)} onClick={() => void answer("unavailable")}>
                   <XCircle className="mr-3 h-4 w-4" /> Not loading
                 </Button>
               </div>
@@ -322,7 +337,7 @@ export default function AssessorPage() {
         <section>
           <div className="mb-5 flex flex-wrap items-center gap-2">
             {historyFilters.map(filter => (
-              <button key={filter.id} type="button" onClick={() => { setHistoryStatus(filter.id); setPage(1); }}
+              <button key={filter.id} type="button" disabled={Boolean(qualitySaving)} onClick={() => { setHistoryStatus(filter.id); setPage(1); }}
                 className={"rounded-md border px-3 py-2 text-sm " + (historyStatus === filter.id ? "border-foreground bg-foreground text-background" : "hover:bg-muted")}>
                 {filter.label}
               </button>
@@ -345,16 +360,22 @@ export default function AssessorPage() {
                   <p className="mt-1 text-xs text-muted-foreground">
                     Reviewed {game.reviewed_at ? formatDate(game.reviewed_at) : "—"} · Added to queue {formatDate(game.first_seen_at)}
                   </p>
-                  {historyStatus === "favourites" && <p className="mt-1 text-xs text-muted-foreground">
+                  {(historyStatus === "favourites" || historyStatus === "ai-slope") && <p className="mt-1 text-xs text-muted-foreground">
                     Decision: {game.status === "clear" ? "No prohibited content" : game.status === "flagged" ? "Flagged" : "Not loading"}
                   </p>}
                   {game.reason && <p className="mt-2 text-sm">{game.reason}</p>}
                 </div>
                 <div className="flex items-center gap-2 sm:justify-end">
-                  <Button variant="ghost" size="icon" disabled={favouriteSaving === game.id}
-                    aria-label={game.is_favourite ? `Remove ${game.title} from favourites` : `Add ${game.title} to favourites`}
-                    aria-pressed={game.is_favourite} onClick={() => void toggleFavourite(game)}>
+                  <Button variant="ghost" size="icon" disabled={Boolean(qualitySaving)}
+                    aria-label={game.is_favourite ? `Remove ${game.title} from good games` : `Add ${game.title} to good games`}
+                    aria-pressed={game.is_favourite} onClick={() => void toggleQuality(game, "favourite")}>
                     <Heart className={game.is_favourite ? "fill-current text-rose-500" : "text-muted-foreground"} />
+                  </Button>
+                  <Button variant="ghost" size="icon" disabled={Boolean(qualitySaving)}
+                    aria-label={game.is_ai_slop ? `Remove ${game.title} from AI-slope` : `Add ${game.title} to AI-slope`}
+                    aria-pressed={Boolean(game.is_ai_slop)} onClick={() => void toggleQuality(game, "aiSlop")}
+                    className={game.is_ai_slop ? "bg-amber-100" : ""}>
+                    <span aria-hidden="true" className="text-xl">💩</span>
                   </Button>
                   <span className="text-xs text-muted-foreground">ID {game.id}</span>
                 </div>
@@ -377,7 +398,7 @@ export default function AssessorPage() {
           setNoteOpen(false);
           void answer("flagged", reviewNote);
         }}>
-          <h2 id="assessor-note-title" className="text-xl font-semibold">Yes / Unsure</h2>
+          <h2 id="assessor-note-title" className="text-xl font-semibold">Prohibited content</h2>
           <p className="mt-2 text-sm text-muted-foreground">Add a note about the content if useful.</p>
           <label htmlFor="assessor-note" className="mt-5 block text-sm font-medium">Note (optional)</label>
           <textarea id="assessor-note" value={note} onChange={event => setNote(event.target.value)}

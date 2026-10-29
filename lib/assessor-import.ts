@@ -1,5 +1,7 @@
 import "server-only";
-import { getSyncState, insertGames, saveSyncState, type ImportedGame } from "@/lib/assessor-storage";
+import { getSyncState, hasPreviouslyImportedGame, insertGames, saveSyncState, type ImportedGame } from "@/lib/assessor-storage";
+
+import { isAssessorGameId } from "@/lib/assessor-id";
 
 const CATALOG = "https://playgama.ai/play";
 const PAGE_LIMIT = 25;
@@ -49,7 +51,7 @@ function parseCatalog(html: string, pageUrl: string): { games: ImportedGame[]; n
     const timeTag = match[2].match(/<time\b[^>]*>/)?.[0];
     const published = (timeTag ? attribute(timeTag, "datetime") : null) ?? fallbackDate;
     const cover = match[2].match(/<image\b[^>]*class="[^"]*\bcard__cover\b[^"]*"[^>]*>/)?.[0];
-    if (!id || !/^[a-z0-9]{10}$/.test(id) || href !== `/play/${id}` || !title || !published || !Number.isFinite(Date.parse(published))) continue;
+    if (!id || !isAssessorGameId(id) || href !== `/play/${id}` || !title || !published || !Number.isFinite(Date.parse(published))) continue;
     const coverUrl = cover ? attribute(cover, "href") : null;
     games.push({ id, title: decodeHtml(title.replace(/<[^>]+>/g, "")).trim(), published_at: published,
       game_url: `${CATALOG}/${id}`, launch_url: null,
@@ -61,7 +63,7 @@ function parseCatalog(html: string, pageUrl: string): { games: ImportedGame[]; n
 
 async function fetchHtml(url: string): Promise<string> {
   const target = new URL(url);
-  if (target.origin !== "https://playgama.ai" || !/^\/play(?:\/[a-z0-9]{10})?$/.test(target.pathname)) {
+  if (target.origin !== "https://playgama.ai" || !(target.pathname === "/play" || (target.pathname.startsWith("/play/") && isAssessorGameId(target.pathname.slice(6))))) {
     throw new Error("Unexpected Playgama URL");
   }
   const response = await fetch(url, { cache: "no-store", headers: { "User-Agent": "polovinka.work assessor importer" }, signal: AbortSignal.timeout(15000) });
@@ -70,7 +72,7 @@ async function fetchHtml(url: string): Promise<string> {
 }
 
 export async function resolveLaunchUrl(id: string): Promise<string> {
-  if (!/^[a-z0-9]{10}$/.test(id)) throw new Error("Invalid game ID");
+  if (!isAssessorGameId(id)) throw new Error("Invalid game ID");
   const html = await fetchHtml(`${CATALOG}/${id}`);
   const frame = html.match(/<iframe\b[^>]*\bclass="[^"]*\bgame-frame\b[^"]*"[^>]*>/)?.[0];
   const raw = frame ? attribute(frame, "data-game-url") ?? attribute(frame, "src") : null;
@@ -85,34 +87,58 @@ export async function resolveLaunchUrl(id: string): Promise<string> {
   return url.toString();
 }
 
-async function insertPage(games: ImportedGame[]): Promise<number> {
-  let added = 0;
-  for (let start = 0; start < games.length; start += 5) {
-    added += await insertGames(games.slice(start, start + 5));
+type ImportCursor = { url: string; newestId: string; knownBefore: string };
+
+function readImportCursor(value: string | null): ImportCursor | null {
+  if (!value) return null;
+  const cursor: unknown = JSON.parse(value);
+  if (!cursor || typeof cursor !== "object") throw new Error("Invalid assessor import cursor");
+  const { url, newestId, knownBefore } = cursor as Partial<ImportCursor>;
+  if (typeof url !== "string" || typeof newestId !== "string" || !isAssessorGameId(newestId) ||
+      typeof knownBefore !== "string" || !Number.isFinite(Date.parse(knownBefore))) {
+    throw new Error("Invalid assessor import cursor");
   }
-  return added;
+  const target = new URL(url);
+  if (target.origin !== "https://playgama.ai" || target.pathname !== "/play" || !target.searchParams.has("cursor")) {
+    throw new Error("Unexpected catalog pagination URL");
+  }
+  return { url, newestId, knownBefore };
 }
 
-export async function syncAssessorGames(claimedAt: string): Promise<{ added: number; scanned: number; backfillDone: boolean }> {
+export async function syncAssessorGames(claimedAt: string, previousUpdatedAt: string): Promise<{ added: number; scanned: number; backfillDone: boolean }> {
   const state = await getSyncState();
+  const resume = readImportCursor(state?.backfill_cursor ?? null);
+  // Keep the original successful-sync boundary across retries and continuation batches.
+  // Rows inserted by a partial/failed run must not make us skip the remaining pages.
+  const knownBefore = resume?.knownBefore ?? previousUpdatedAt;
   let added = 0;
   let scanned = 0;
-  let newestId: string | null = null;
-  let next: string | null = CATALOG;
-  let reachedPrevious = false;
+  let newestId = resume?.newestId ?? null;
+  let next: string | null = resume?.url ?? CATALOG;
+  let done = false;
 
   for (let page = 0; page < PAGE_LIMIT && next; page++) {
     const parsed = parseCatalog(await fetchHtml(next), next);
-    if (page === 0) newestId = parsed.games[0].id;
-    const stop = state?.newest_id ? parsed.games.findIndex(game => game.id === state.newest_id) : -1;
+    if (!newestId) newestId = parsed.games[0].id;
+    const boundaryTime = Date.parse(knownBefore);
+    // The source republishes existing IDs with newer dates. Those are not a
+    // historical boundary: unseen games may still follow them in the catalog.
+    const stop = state?.newest_id ? parsed.games.findIndex(game =>
+      game.id === state.newest_id && Date.parse(game.published_at) <= boundaryTime) : -1;
+    const olderIds = parsed.games.filter(game => Date.parse(game.published_at) <= boundaryTime).map(game => game.id);
+    const reachedKnown = state?.newest_id && stop < 0
+      ? await hasPreviouslyImportedGame(olderIds, knownBefore) : false;
     const newGames = stop >= 0 ? parsed.games.slice(0, stop) : parsed.games;
-    added += await insertPage(newGames);
+    added += await insertGames(newGames);
     scanned += parsed.games.length;
-    if (!state?.newest_id || stop >= 0 || !parsed.next) { reachedPrevious = true; break; }
     next = parsed.next;
+    if (!state?.newest_id || stop >= 0 || reachedKnown || !next) { done = true; break; }
   }
-  if (!reachedPrevious) throw new Error(`Previous catalog checkpoint not reached after ${PAGE_LIMIT} pages`);
 
-  await saveSyncState({ newest_id: newestId, backfill_cursor: null, backfill_done: true }, claimedAt);
-  return { added, scanned, backfillDone: true };
+  await saveSyncState({
+    newest_id: done ? newestId : state?.newest_id ?? null,
+    backfill_cursor: done ? null : JSON.stringify({ url: next, newestId, knownBefore }),
+    backfill_done: done,
+  }, claimedAt);
+  return { added, scanned, backfillDone: done };
 }
