@@ -1,0 +1,600 @@
+{
+  "checkedAt": "2026-10-24",
+  "bedrooms": 3,
+  "currency": "BRL",
+  "period": "month",
+  "method": "Up to five first visible unique monthly-priced listings of three-bedroom homes in the exact named neighborhood on each fetched portal page. Excludes explicit daily/seasonal/sale offers, grouped ads, missing addresses and repeated street+area candidates. Sparse sets supplemented by linked listing sources. Not a random or exhaustive sample; monthly pricing alone does not confirm a year-round lease, furnishing or availability. Portal neighborhood tags are not spatially verified.",
+  "districts": {
+    "lagoa": {
+      "house": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/lagoa-da-conceicao/casa_residencial/",
+        "samples": [
+          {
+            "price": 14000,
+            "area": 340,
+            "address": "Servidão José Felisberto de Oliveira",
+            "bedrooms": 3
+          },
+          {
+            "price": 5800,
+            "area": 203,
+            "address": "Rua Laurindo Januário da Silveira",
+            "bedrooms": 3
+          },
+          {
+            "price": 4800,
+            "area": 120,
+            "address": "Rua das Araras",
+            "bedrooms": 3
+          },
+          {
+            "price": 8000,
+            "area": 200,
+            "address": "Servidão Canto do Canto",
+            "bedrooms": 3
+          },
+          {
+            "price": 8000,
+            "area": 200,
+            "address": "Rua Laurindo Januário da Silveira",
+            "bedrooms": 3
+          }
+        ]
+      },
+      "apartment": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/lagoa-da-conceicao/apartamento_residencial/",
+        "samples": [
+          {
+            "price": 5900,
+            "area": 113,
+            "address": "Rua Laurindo Januário da Silveira",
+            "bedrooms": 3
+          },
+          {
+            "price": 5510,
+            "area": 145,
+            "address": "Rua Laurindo Januário da Silveira",
+            "bedrooms": 3
+          }
+        ]
+      }
+    },
+    "campeche": {
+      "house": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/campeche/casa_residencial/",
+        "samples": [
+          {
+            "price": 11000,
+            "area": 200,
+            "address": "Servidão Caminho das Gralhas",
+            "bedrooms": 3
+          },
+          {
+            "price": 11000,
+            "area": 150,
+            "address": "Servidão Laura Duarte Prazeres",
+            "bedrooms": 3
+          },
+          {
+            "price": 9200,
+            "area": 201,
+            "address": "Rua Jardim 300 N",
+            "bedrooms": 3
+          },
+          {
+            "price": 14000,
+            "area": 264,
+            "address": "Servidão Bosque dos Eucaliptos",
+            "bedrooms": 3
+          },
+          {
+            "price": 12900,
+            "area": 369,
+            "address": "Servidão Calmaria",
+            "bedrooms": 3
+          }
+        ]
+      },
+      "apartment": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/campeche/apartamento_residencial/",
+        "samples": [
+          {
+            "price": 9500,
+            "area": 106,
+            "address": "Rua Gilmar Darli Vieira",
+            "bedrooms": 3
+          },
+          {
+            "price": 5000,
+            "area": 103,
+            "address": "Servidão João Batista Pires",
+            "bedrooms": 3
+          },
+          {
+            "price": 10000,
+            "area": 150,
+            "address": "Rua Ana Luiza Vieira",
+            "bedrooms": 3
+          },
+          {
+            "price": 6500,
+            "area": 82,
+            "address": "Rua da Capela",
+            "bedrooms": 3
+          }
+        ]
+      }
+    },
+    "rio-tavares": {
+      "house": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/rio-tavares/casa_residencial/",
+        "samples": [
+          {
+            "price": 11800,
+            "area": 208,
+            "address": "Rua Isaltina de Assunção Farias",
+            "bedrooms": 3
+          },
+          {
+            "price": 2700,
+            "area": 60,
+            "address": "Rua Pau de Canela",
+            "bedrooms": 3
+          },
+          {
+            "price": 7500,
+            "area": 120,
+            "address": "Servidão Paulo Simão Martins",
+            "bedrooms": 3
+          },
+          {
+            "price": 10500,
+            "area": 150,
+            "address": "Servidão Julia Maria da Rocha",
+            "bedrooms": 3
+          },
+          {
+            "price": 12500,
+            "area": 225,
+            "address": "Travessa da Benção",
+            "bedrooms": 3
+          }
+        ]
+      },
+      "apartment": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/rio-tavares/apartamento_residencial/",
+        "samples": [
+          {
+            "price": 7500,
+            "area": 136,
+            "address": "Rua Cezário Silveira",
+            "bedrooms": 3
+          },
+          {
+            "price": 6700,
+            "area": 127,
+            "address": "Rua Silvio Lopes Araújo",
+            "bedrooms": 3
+          },
+          {
+            "price": 5000,
+            "area": 77,
+            "address": "Rua Aroeira da Praia",
+            "bedrooms": 3
+          },
+          {
+            "price": 6000,
+            "area": 82,
+            "address": "Rua Mar Azul Profundo",
+            "bedrooms": 3
+          },
+          {
+            "price": 12900,
+            "area": 213,
+            "address": "Servidão Pedro Edmundo Bittencourt",
+            "bedrooms": 3
+          }
+        ]
+      }
+    },
+    "barra": {
+      "house": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/barra-da-lagoa/casa_residencial/",
+        "samples": [
+          {
+            "price": 8990,
+            "area": 137,
+            "address": "Rodovia Jornalista Manoel de Menezes",
+            "bedrooms": 3
+          },
+          {
+            "price": 5200,
+            "area": 120,
+            "address": "Rua Clara Simões Speck",
+            "bedrooms": 3
+          },
+          {
+            "price": 16500,
+            "area": 250,
+            "address": "Rodovia Jornalista Manoel de Menezes",
+            "bedrooms": 3
+          },
+          {
+            "price": 7500,
+            "area": 140,
+            "address": "Rodovia Jornalista Manoel de Menezes",
+            "bedrooms": 3
+          },
+          {
+            "price": 12000,
+            "area": 142,
+            "address": "Rodovia Jornalista Manoel de Menezes",
+            "bedrooms": 3
+          }
+        ]
+      },
+      "apartment": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/barra-da-lagoa/apartamento_residencial/",
+        "samples": [
+          {
+            "price": 5200,
+            "area": 110,
+            "address": "Servidão Estrela - Guia",
+            "bedrooms": 3,
+            "source": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/barra-da-lagoa/"
+          }
+        ]
+      }
+    },
+    "trindade": {
+      "house": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/trindade/casa_residencial/",
+        "samples": [
+          {
+            "price": 6800,
+            "area": 120,
+            "address": "Rua Francisco Goulart",
+            "bedrooms": 3
+          },
+          {
+            "price": 6000,
+            "area": 200,
+            "address": "Rua Francisco Goulart",
+            "bedrooms": 3
+          },
+          {
+            "price": 9000,
+            "area": 195,
+            "address": "Servidão Costa",
+            "bedrooms": 3
+          }
+        ]
+      },
+      "apartment": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/trindade/apartamento_residencial/",
+        "samples": [
+          {
+            "price": 4300,
+            "area": 94,
+            "address": "Rua Professor Simão José Hess",
+            "bedrooms": 3
+          },
+          {
+            "price": 5800,
+            "area": 89,
+            "address": "Rua Alba Dias Cunha",
+            "bedrooms": 3
+          },
+          {
+            "price": 8000,
+            "area": 82,
+            "address": "Servidão Giray",
+            "bedrooms": 3
+          }
+        ]
+      }
+    },
+    "itacorubi": {
+      "house": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/itacorubi/casa_residencial/",
+        "samples": [
+          {
+            "price": 7000,
+            "area": 210,
+            "address": "Rua do Babaçú",
+            "bedrooms": 3
+          },
+          {
+            "price": 5100,
+            "area": 180,
+            "address": "Servidão Honorato Manoel Alexandre",
+            "bedrooms": 3
+          },
+          {
+            "price": 5500,
+            "area": 87,
+            "address": "Servidão Izidoro Braz da Silva",
+            "bedrooms": 3
+          },
+          {
+            "price": 5500,
+            "area": 74,
+            "address": "Servidão Izidoro Braz da Silva",
+            "bedrooms": 3
+          },
+          {
+            "price": 5500,
+            "area": 53,
+            "address": "Servidão Izidoro Braz da Silva",
+            "bedrooms": 3
+          }
+        ]
+      },
+      "apartment": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/itacorubi/apartamento_residencial/",
+        "samples": [
+          {
+            "price": 4500,
+            "area": 82,
+            "address": "Servidão Deoscoro Peres",
+            "bedrooms": 3
+          },
+          {
+            "price": 5600,
+            "area": 107,
+            "address": "Avenida Buriti",
+            "bedrooms": 3
+          }
+        ]
+      }
+    },
+    "centro": {
+      "house": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/centro/casa_residencial/",
+        "samples": [
+          {
+            "price": 4000,
+            "area": 120,
+            "address": "Rua Major Costa",
+            "bedrooms": 3
+          },
+          {
+            "price": 15000,
+            "area": 300,
+            "address": "Rua Jornalista Lázaro Bartolomeu",
+            "bedrooms": 3
+          },
+          {
+            "price": 6500,
+            "area": 262,
+            "address": "Rua José Boiteux",
+            "bedrooms": 3
+          }
+        ]
+      },
+      "apartment": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/centro/apartamento_residencial/",
+        "samples": [
+          {
+            "price": 6500,
+            "area": 81,
+            "address": "Rua Rafael Bandeira",
+            "bedrooms": 3
+          },
+          {
+            "price": 2900,
+            "area": 100,
+            "address": "Rua Vidal Ramos",
+            "bedrooms": 3
+          }
+        ]
+      }
+    },
+    "jurere": {
+      "house": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/jurere/casa_residencial/",
+        "samples": [
+          {
+            "price": 6998,
+            "area": 180,
+            "address": "Rodovia Tertuliano Brito Xavier",
+            "bedrooms": 3
+          },
+          {
+            "price": 10000,
+            "area": 181,
+            "address": "Rua dos Cambuatas",
+            "bedrooms": 3
+          },
+          {
+            "price": 10000,
+            "area": 181,
+            "address": "Rua das Moreias",
+            "bedrooms": 3
+          }
+        ]
+      },
+      "apartment": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/jurere/apartamento_residencial/",
+        "samples": [
+          {
+            "price": 14000,
+            "area": 98,
+            "address": "Rodovia Jornalista Maurício Sirotsky Sobrinho",
+            "bedrooms": 3
+          },
+          {
+            "price": 5950,
+            "area": 110,
+            "address": "Rua das Baleias Franca",
+            "bedrooms": 3
+          },
+          {
+            "price": 11900,
+            "area": 110,
+            "address": "Rua Deputado Paulo Preis",
+            "bedrooms": 3
+          },
+          {
+            "price": 13000,
+            "area": 123,
+            "address": "Rodovia Tertuliano Brito Xavier",
+            "bedrooms": 3
+          },
+          {
+            "price": 8900,
+            "area": 105,
+            "address": "Rua Deputado Paulo Preis",
+            "bedrooms": 3
+          }
+        ]
+      }
+    },
+    "canasvieiras": {
+      "house": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/canasvieiras/casa_residencial/",
+        "samples": [
+          {
+            "price": 13500,
+            "area": 125,
+            "address": "Rua Rodolfo Hickel",
+            "bedrooms": 3
+          },
+          {
+            "price": 8600,
+            "area": 150,
+            "address": "Rua João Luiz da Silva Brito",
+            "bedrooms": 3
+          }
+        ]
+      },
+      "apartment": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/canasvieiras/apartamento_residencial/",
+        "samples": [
+          {
+            "price": 4000,
+            "area": 87,
+            "address": "Rodovia Tertuliano Brito Xavier",
+            "bedrooms": 3
+          },
+          {
+            "price": 4500,
+            "area": 120,
+            "address": "Rua Heitor Bittencourt / Av. Madre Maria Vilac",
+            "bedrooms": 3,
+            "source": "https://sc.olx.com.br/florianopolis-e-regiao/imoveis/aluguel-anual-3-quartos-mobiliado-canasvieiras-2-vagas-1527377273"
+          },
+          {
+            "price": 5235,
+            "area": 180,
+            "address": "Rua Ranulpho José de Souza Sobrinho",
+            "bedrooms": 3,
+            "source": "https://www.imovelweb.com.br/apartamentos-aluguel-canasvieiras-florianopolis-3-quartos.html"
+          }
+        ]
+      }
+    },
+    "ingleses": {
+      "house": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/ingleses-do-rio-vermelho/casa_residencial/",
+        "samples": [
+          {
+            "price": 14500,
+            "area": 371,
+            "address": "Rodovia João Gualberto Soares",
+            "bedrooms": 3
+          },
+          {
+            "price": 4700,
+            "area": 363,
+            "address": "Servidão Nova Era",
+            "bedrooms": 3
+          },
+          {
+            "price": 3800,
+            "area": 80,
+            "address": "Rua Nivaldo Alfredo Silva",
+            "bedrooms": 3
+          },
+          {
+            "price": 7300,
+            "area": 130,
+            "address": "Rua Lázaro de Oliveira Souza",
+            "bedrooms": 3
+          },
+          {
+            "price": 7000,
+            "area": 155,
+            "address": "Rua dos Golfinhos",
+            "bedrooms": 3
+          }
+        ]
+      },
+      "apartment": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/ingleses-do-rio-vermelho/apartamento_residencial/",
+        "samples": [
+          {
+            "price": 4700,
+            "area": 203,
+            "address": "Rua Martinho de Haro",
+            "bedrooms": 3
+          },
+          {
+            "price": 5500,
+            "area": 84,
+            "address": "Servidão Nossa Senhora Aparecida",
+            "bedrooms": 3
+          },
+          {
+            "price": 3650,
+            "area": 100,
+            "address": "Servidão Leonel Domingos da Silva",
+            "bedrooms": 3
+          }
+        ]
+      }
+    },
+    "santo-antonio": {
+      "house": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/santo-antonio-de-lisboa/casa_residencial/",
+        "samples": [
+          {
+            "price": 8800,
+            "area": 280,
+            "address": "Servidão Arnaldo Lisboa",
+            "bedrooms": 3
+          },
+          {
+            "price": 10000,
+            "area": 360,
+            "address": "Rua Aldo Queiroz",
+            "bedrooms": 3
+          },
+          {
+            "price": 5400,
+            "area": 140,
+            "address": "Rua Deputado Walter Gomes",
+            "bedrooms": 3
+          },
+          {
+            "price": 23000,
+            "area": 240,
+            "address": "Estrada Caminho dos Açores",
+            "bedrooms": 3
+          }
+        ]
+      },
+      "apartment": {
+        "url": "https://www.vivareal.com.br/aluguel/santa-catarina/florianopolis/bairros/santo-antonio-de-lisboa/apartamento_residencial/",
+        "samples": [
+          {
+            "price": 2998,
+            "area": 70,
+            "address": "Rua Cônego Serpa",
+            "bedrooms": 3
+          }
+        ]
+      }
+    }
+  }
+}

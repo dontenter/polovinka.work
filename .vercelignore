@@ -5,7 +5,6 @@
 *.session*
 *.command
 scripts/
-tests/
 supabase/
 docs/
 __pycache__/

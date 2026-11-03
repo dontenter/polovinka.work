@@ -1,0 +1,204 @@
+/* Shared visual system for the private guide. Layout mechanics remain in brazil.css. */
+.brazil {
+  --ink: #193c34;
+  --green: #23654e;
+  --soft: #576960;
+  --line: #dce4dc;
+  --paper: #f8f9f5;
+  --surface: #ffffff;
+  --tint: #eaf1e8;
+  --motion: cubic-bezier(.22, 1, .36, 1);
+  font-family: var(--font-brazil), sans-serif;
+  font-size: 18px;
+  line-height: 28px;
+}
+.brazil :is(h1,h2,h3,h4) { text-wrap: balance; font-style: normal; }
+.brazil :is(p,li) { text-wrap: pretty; }
+.brazil :is(button,input,textarea,summary) { font-family: inherit; }
+.brazil :is(button,summary,a) { -webkit-tap-highlight-color: transparent; }
+.brazil :is(button,a,summary):focus-visible { outline: 2px solid var(--green); outline-offset: 4px; }
+.brazil :is(input,textarea):focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.brazil :is(button,summary):not(:disabled) { cursor: pointer; }
+.brazil :is(button,a,summary) { transition: color 300ms var(--motion), background-color 300ms var(--motion), opacity 300ms var(--motion), transform 300ms var(--motion); }
+.brazil :is(button,summary):active:not(:disabled) { transform: translateY(1px); }
+.brazil button:disabled { cursor: not-allowed; }
+.brazil h1 { font-size: 36px; line-height: 40px; font-weight: 600; letter-spacing: -.04em; }
+.brazil h2 { font-size: 30px; line-height: 36px; font-weight: 600; letter-spacing: -.03em; }
+.brazil h3 { font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -.02em; }
+.brazil-shell { grid-template-columns: 256px minmax(0,1fr); }
+.brazil-menu { padding: 24px 16px; background: #eef2eb; border-right: 1px solid var(--line); overflow-y: auto; overscroll-behavior: contain; }
+.back-link { gap: 8px; padding: 8px 16px; font-size: 14px; line-height: 20px; }
+.back-link:hover { color: var(--green); }
+.menu-brand { padding: 24px 16px 32px; gap: 12px; font-size: 30px; line-height: 36px; letter-spacing: -.04em; }
+.menu-brand > span { font-size: 30px; line-height: 36px; }
+.brazil-nav { gap: 8px; }
+.brazil-nav a { padding: 12px 16px; gap: 12px; border-radius: 12px; font-size: 16px; line-height: 24px; font-weight: 500; min-height: 48px; }
+.brazil-nav a:hover { color: var(--ink); background: #e2eade; }
+.brazil-nav a[aria-current=page] { background: var(--green); color: white; font-weight: 600; box-shadow: 0 4px 12px #193c3410; }
+.brazil-nav a[aria-current=page]:hover { background: #1b543f; }
+.brazil-content { padding: 40px 40px 32px; }
+.brazil-heading { gap: 16px; margin-bottom: 32px; }
+.brazil-skip { position: fixed; top: 64px; left: 16px; z-index: 60; padding: 12px 16px; background: var(--green); color: white; border-radius: 8px; transform: translateY(-200%); }
+.brazil-skip:focus { transform: translateY(0); }
+.brazil .brazil-content:focus { outline: none; }
+.currency-buttons { padding: 4px; gap: 4px; border-radius: 12px; background: #edf1e9; }
+.currency-buttons button { min-width: 48px; min-height: 40px; padding: 8px 12px; font-size: 14px; line-height: 20px; font-weight: 600; }
+.currency-buttons button:hover { background: #e0e9dc; }
+.currency-buttons button[aria-pressed=true] { background: white; color: var(--ink); }
+
+/* A compact daily digest leaves the map as the main workspace. */
+.knowledge-daily { margin-bottom: 32px; }
+.knowledge-section-heading { gap: 16px; margin-bottom: 16px; }
+.knowledge-daily .knowledge-section-heading h2 { font-size: 20px; line-height: 28px; letter-spacing: -.02em; }
+.knowledge-section-heading > p,.knowledge-muted { font-size: 14px; line-height: 20px; }
+.knowledge-questions { gap: 16px; }
+.knowledge-questions article { padding: 24px; border-radius: 16px; background: var(--surface); }
+.knowledge-number { font-size: 14px; line-height: 20px; font-weight: 600; margin-bottom: 12px; color: var(--green); }
+.knowledge-questions h3 { font-size: 18px; line-height: 28px; font-weight: 500; letter-spacing: -.02em; }
+.knowledge-questions summary { padding-right: 32px; }
+.knowledge-questions summary:hover h3 { color: var(--green); }
+.knowledge-question-chevron { transition: transform 300ms var(--motion); }
+.knowledge-answer { margin-top: 16px; }
+.knowledge-answer > p { font-size: 16px; line-height: 24px; }
+.knowledge-sources a { font-size: 14px; line-height: 20px; }
+
+.map-section { border-radius: 16px; box-shadow: 0 8px 32px #193c3408; }
+.map-main { height: min(760px,calc(100dvh - 192px)); min-height: 560px; background: #e6eee6; }
+.map-main .map-search { left: 64px; top: 16px; width: 256px; max-width: calc(100% - 544px); }
+.map-main .map-search input { padding: 12px 16px; font-size: 16px; line-height: 24px; border-radius: 12px; border-color: var(--line); background: #fffffffa; }
+.map-layer-controls { gap: 12px; }
+.map-area-toggle { padding: 12px 16px; font-size: 16px; line-height: 24px; min-height: 48px; border-radius: 12px; border: 1px solid var(--line); }
+.map-area-toggle[aria-pressed=true] { background: var(--green); color: white; border-color: var(--green); }
+.map-layer-controls .map-filter-panel { flex-basis: 256px; width: 256px; padding: 16px; border-radius: 12px; border-color: var(--line); }
+.map-filter-panel > summary { font-size: 16px; line-height: 24px; }
+.map-filter-panel .map-filters { margin-top: 8px; padding: 0 4px 0 0; }
+.map-filter-panel .map-filters label { font-size: 14px; line-height: 20px; min-height: 40px; gap: 8px; margin-top: 8px; }
+.map-filters input { width: 16px; height: 16px; }
+.filter-count { font-size: 14px; line-height: 20px; padding-left: 8px; }
+.map-layer-actions { gap: 16px; margin: 8px 0 12px; }
+.map-layer-actions button { font-size: 14px; line-height: 20px; }
+.map-reset { bottom: 32px; right: 16px; padding: 8px 12px; min-height: 40px; font-size: 14px; line-height: 20px; font-weight: 600; border-radius: 8px; box-shadow: 0 4px 16px #193c3410; }
+.map-reset:hover { background: var(--tint); }
+.map-caption { padding: 12px 16px; font-size: 12px; line-height: 16px; background: white; }
+.map-loading { padding: 24px; font-size: 18px; line-height: 28px; }
+.map-workspace .map-sidebar { border: 1px solid var(--line); animation-duration: 500ms; animation-timing-function: var(--motion); }
+.place-detail,.district-card { padding: 24px; }
+.place-detail h3,.district-card > h3 { font-size: 24px; line-height: 32px; }
+.place-detail > p,.district-summary { font-size: 16px; line-height: 24px; }
+.brazil .map-canvas .leaflet-popup-content,.brazil-area-tooltip { font-family: var(--font-brazil),sans-serif; font-size: 16px; line-height: 24px; }
+.brazil-map-pin { transition: transform 300ms var(--motion); }
+.map-pin-count { font-family: inherit; font-size: 12px; line-height: 16px; }
+
+/* Long-form pages share readable panels and a restrained warning treatment. */
+.intro-row,.section-heading { margin-bottom: 24px; }
+.intro-row p,.section-lead { font-size: 18px; line-height: 28px; max-width: 960px; }
+.section-lead { margin: 16px 0 24px; }
+.school-grid,.two-grid,.three-grid { gap: 24px; }
+.info-card,.guide-chat-note { padding: 32px; border-radius: 16px; background: var(--surface); }
+.info-card p,.info-card li,.guide-chat-note > p,.brazil-details li,.legal-step p { font-size: 18px; line-height: 28px; margin-top: 16px; }
+.info-card .school-format,.brazil .address { font-size: 16px; line-height: 24px; }
+.source-link { margin-top: 16px; margin-right: 12px; font-size: 14px; line-height: 20px; font-weight: 500; text-decoration-color: #aac4b2; text-underline-offset: 4px; }
+.source-link:hover { color: #153f30; text-decoration-color: currentColor; }
+.brazil-details { padding: 24px; margin-top: 24px; border-radius: 12px; background: var(--tint); }
+.brazil-details summary { font-size: 18px; line-height: 28px; font-weight: 500; }
+.important-note { padding: 32px; border-radius: 16px; background: #fbf5e6; border-color: #e9d9b5; }
+.important-note > strong { font-size: 20px; line-height: 28px; color: #71531e; }
+.important-note p { font-size: 18px; line-height: 28px; color: #735c33; }
+.legal-step { padding-bottom: 40px; }
+.step-number { width: 48px; height: 48px; font-size: 16px; line-height: 24px; background: var(--tint); }
+.legal-step h3 { font-size: 24px; line-height: 32px; margin-top: 8px; }
+.legal-step:not(:last-child):before { left: 24px; top: 48px; }
+.checklist-progress { padding: 32px; gap: 32px; background: var(--tint); border-radius: 16px; }
+.checklist-progress strong { font-size: 30px; line-height: 36px; font-weight: 600; }
+.checklist-progress span { margin-top: 8px; }
+.checklist-item { padding: 16px 24px; border-radius: 12px; font-size: 18px; line-height: 28px; }
+.checklist-item:hover { border-color: #99b29e; }
+.checklist-item input { margin-top: 4px; width: 24px; height: 24px; }
+.checklist-item.done { background: var(--tint); }
+.checklist-stage h3 { font-size: 24px; line-height: 32px; }
+.school-filters { gap: 8px; margin: 24px 0; }
+.school-filters button { padding: 8px 12px; min-height: 48px; border-radius: 8px; font-size: 16px; line-height: 24px; font-weight: 500; }
+.school-filters button:hover { background: var(--tint); }
+.school-filters button[aria-pressed=true] { background: var(--green); color: white; border-color: var(--green); }
+.guide-chat-note h4 { font-size: 20px; line-height: 28px; font-weight: 600; }
+.guide-chat-note-meta,.guide-chat-citations a { font-size: 14px; line-height: 20px; }
+.guide-chat-grid { gap: 24px; }
+
+.knowledge-chat { padding: 24px; border-radius: 16px; }
+.knowledge-chat h2 { font-size: 24px; line-height: 32px; }
+.knowledge-chat-actions button { padding: 8px 12px; font-size: 14px; line-height: 20px; font-weight: 600; min-height: 40px; background: var(--paper); }
+.knowledge-chat-actions button:hover:not(:disabled),.knowledge-suggestions button:hover { background: var(--tint); }
+.knowledge-suggestions { gap: 12px; }
+.knowledge-suggestions button { padding: 12px 16px; font-size: 16px; line-height: 24px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; }
+.knowledge-turn { padding: 16px 24px; border-radius: 16px; }
+.knowledge-turn-user { background: var(--tint); }
+.knowledge-turn-assistant { background: var(--paper); }
+.knowledge-turn > p { font-size: 18px; line-height: 28px; }
+.knowledge-form > button { font-size: 16px; line-height: 24px; font-weight: 600; }
+.knowledge-form > button:hover:not(:disabled) { background: #194f3b; }
+.knowledge-history-panel { padding: 24px; border-radius: 12px; }
+.knowledge-history-list strong { font-size: 16px; line-height: 24px; }
+.knowledge-history-list button > span { font-size: 14px; line-height: 20px; }
+
+@media (max-width: 1200px) {
+  .brazil-shell { grid-template-columns: 224px minmax(0,1fr); }
+  .brazil-content { padding: 32px 24px; }
+  .brazil-nav a { padding: 12px; }
+  .info-card { padding: 24px; }
+  .map-main .map-search { width: 224px; max-width: calc(100% - 368px); }
+  .map-layer-controls { flex-direction: column; align-items: flex-end; }
+}
+@media (max-width: 900px) {
+  .brazil-shell { grid-template-columns: 80px minmax(0,1fr); }
+  .brazil-menu { padding: 24px 8px; }
+  .back-link { justify-content: center; padding: 8px; }
+  .menu-brand { justify-content: center; padding: 24px 0 32px; }
+  .brazil-nav a { padding: 12px; justify-content: center; }
+  .brazil-nav svg { width: 24px; height: 24px; }
+  .brazil-content { padding: 24px; }
+  .map-layer-controls { top: 80px; }
+  .map-main .map-search { width: 320px; max-width: calc(100% - 80px); }
+  .map-main { min-height: 560px; height: 640px; }
+}
+@media (max-width: 540px) {
+  .brazil-shell { grid-template-columns: 64px minmax(0,1fr); }
+  .brazil-menu { padding: 16px 8px; }
+  .brazil-nav a { padding: 12px 8px; }
+  .menu-brand { padding: 24px 0; }
+  .menu-brand > span { font-size: 24px; line-height: 32px; }
+  .brazil-content { padding: 24px 12px; }
+  .brazil h1 { font-size: 24px; line-height: 32px; }
+  .brazil h2 { font-size: 24px; line-height: 32px; }
+  .brazil h3 { font-size: 20px; line-height: 28px; }
+  .brazil-heading { gap: 8px; margin-bottom: 24px; }
+  .currency-buttons button { min-width: 32px; padding: 8px; }
+  .knowledge-daily { margin-bottom: 24px; }
+  .knowledge-questions article,.info-card,.guide-chat-note,.important-note { padding: 24px; }
+  .knowledge-questions h3 { font-size: 18px; line-height: 28px; }
+  .knowledge-section-heading { gap: 8px; }
+  .map-main { height: 640px; min-height: 560px; }
+  .map-layer-controls { top: 80px; right: 12px; gap: 8px; }
+  .map-layer-controls .map-filter-panel { width: 224px; padding: 12px; }
+  .map-filter-panel .map-filters label { flex-wrap: nowrap; }
+  .map-area-toggle { padding: 8px 12px; min-height: 40px; }
+  .map-workspace .map-sidebar { width: calc(100% - 16px); }
+  .info-card p,.info-card li,.guide-chat-note > p,.important-note p,.legal-step p,.section-lead,.brazil-details li { font-size: 18px; line-height: 28px; }
+  .brazil-details { padding: 16px; }
+  .legal-step { gap: 12px; }
+  .step-number { width: 32px; height: 32px; font-size: 14px; line-height: 20px; }
+  .legal-step h3 { margin-top: 0; font-size: 20px; line-height: 28px; }
+  .legal-step:not(:last-child):before { left: 16px; top: 40px; }
+  .checklist-progress { padding: 24px; gap: 16px; }
+  .checklist-item { padding: 16px; gap: 12px; }
+}
+@media (max-width: 700px) {
+  .knowledge-chat:not(.knowledge-chat-compact) { padding: 12px 12px max(12px,env(safe-area-inset-bottom)); border-radius: 0; }
+  .knowledge-chat .knowledge-chat-actions button { width: 40px; height: 40px; padding: 8px; }
+  .knowledge-chat:not(.knowledge-chat-compact) .knowledge-section-heading h2 { font-size: 18px; line-height: 28px; }
+  .knowledge-turn { padding: 12px 16px; }
+  .knowledge-turn > p { font-size: 16px; line-height: 24px; }
+  .knowledge-history-panel { padding: 16px; border-radius: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brazil *,.brazil *::before,.brazil *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

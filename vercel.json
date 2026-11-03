@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/assessor-telegram",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/brazil",
+      "schedule": "17,32,47 3 * * *"
     }
   ]
 }

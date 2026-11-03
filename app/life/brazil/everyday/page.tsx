@@ -1,0 +1,7 @@
+import {GuideChatNotes} from "@/components/brazil/guide-chat-notes";
+import { Source } from "@/components/brazil/source";
+import { schools, sources } from "@/lib/brazil-data";
+export default function Page() { return <>
+  <section className="brazil-section"><h2>Первые бытовые решения</h2><div className="three-grid"><article className="info-card"><h3>Жильё и маршруты</h3><p>Сначала короткая аренда и просмотры. До годового договора проверить сырость, интернет, шум, парковку и дорогу до школы и роддома в час пик.</p><p>В полной стоимости учитывать condomínio, IPTU, коммунальные платежи и залог. Актуальные цены запрашивать по конкретному жилью.</p></article><article className="info-card"><h3>Документы и связь</h3><p>CPF, бразильский номер телефона, подтверждение адреса. Для банка заранее уточнить требования к иностранцу и поддержку международных переводов.</p><Source href={sources.cpf}>Receita Federal · CPF</Source><p>До длительного проживания обсудить с бухгалтером налоговое резидентство и доходы из-за рубежа.</p></article><article className="info-card"><h3>Океан и здоровье</h3><p>Качество воды проверять по конкретному пункту, особенно после дождя. Ветер, волны и разрешённые зоны катания уточнять ежедневно у школы и спасателей.</p><Source href={sources.water}>IMA · качество воды</Source><p>Для семьи заранее сохранить адрес роддома и план экстренного обращения, согласованный с врачом.</p></article></div></section>
+
+<GuideChatNotes section="everyday"/></>; }

@@ -16,5 +16,11 @@ export default async function LifePage() {
       <p className="mt-5 flex items-center gap-2 text-sm text-muted-foreground"><Sunrise className="h-4 w-4"/>{process.env.LIFE_AUTOMATION_ENABLED === "true" ? "Каждый день в 08:00 · Бали" : "Автоматические дайджесты отключены"}</p>
       <p className="mt-4 text-sm font-medium">Открыть архив →</p>
     </Link>
+    <Link href="/life/brazil" className="mt-6 block max-w-xl rounded-xl border border-emerald-200 bg-emerald-50/60 p-6 transition-colors hover:border-emerald-400 hover:bg-emerald-50">
+      <div className="flex items-center justify-between"><span className="text-3xl" aria-label="Бразилия">🇧🇷</span><ArrowUpRight className="h-5 w-5 text-emerald-700"/></div>
+      <h2 className="mt-6 text-xl font-medium">Brazil</h2>
+      <p className="mt-2 text-sm text-muted-foreground">Переезд во Флорианополис: карта районов, международные школы, серф и кайт, больницы и роды, легализация семьи.</p>
+      <p className="mt-4 text-sm font-medium text-emerald-800">Подготовиться к переезду →</p>
+    </Link>
   </main>;
 }
