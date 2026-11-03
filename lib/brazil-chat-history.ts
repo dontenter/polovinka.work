@@ -11,7 +11,7 @@ export async function saveChatThread(value:unknown){
 export async function loadChatThreads(){
  const all:ChatThread[]=[];
  for(let offset=0;;offset+=100){
-  const rows=await brazilDb<{id:string;thread_id:string;created_at:string;updated_at:string;turns:ChatThread["turns"]}[]>(`rpc/life_brazil_chat_heads?offset=${offset}&limit=100`,{});
+  const rows=await brazilDb<{id:string;thread_id:string;created_at:string;updated_at:string;turns:ChatThread["turns"]}[]>(`rpc/life_brazil_chat_heads?thread_id=neq.archive-smoke-20261104&offset=${offset}&limit=100`,{});
   for(const r of rows)all.push(parseThread({id:r.thread_id+"~"+r.id,createdAt:r.created_at,updatedAt:r.updated_at,turns:r.turns}));
   if(rows.length<100)break;
  }
