@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
 test('website deployments preserve the Brazil portal and existing services', () => {
-  for (const file of ['app/life/page.tsx', 'app/life/brazil/page.tsx', 'app/life/brazil/chat/page.tsx', 'app/api/life/brazil/chat/route.ts', 'app/api/cron/brazil/route.ts', 'app/api/cron/assessor-telegram/route.ts', 'app/life/telegram/page.tsx']) {
+  for (const file of ['app/life/page.tsx', 'app/life/brazil/page.tsx', 'app/life/brazil/chat/page.tsx', 'app/api/life/brazil/history/route.ts', 'app/brazil-history-bridge/page.tsx', 'app/api/life/brazil/chat/route.ts', 'app/api/cron/brazil/route.ts', 'app/api/cron/assessor-telegram/route.ts', 'app/life/telegram/page.tsx']) {
     assert.ok(fs.existsSync(file), 'Missing production feature: ' + file);
   }
   assert.ok(fs.readFileSync('app/life/page.tsx', 'utf8').includes('href="/life/brazil"'));

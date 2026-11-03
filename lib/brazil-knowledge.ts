@@ -2,10 +2,10 @@ import "server-only";
 import {randomUUID} from "node:crypto";
 import {type Answer,type Message,type Note,type Source,parseSource,sourceUrl,reservationBound,validateAnswer} from "./brazil-knowledge-core";
 
-export async function brazilDb<T=unknown>(path:string,body?:unknown,method?:string):Promise<T> {
+export async function brazilDb<T=unknown>(path:string,body?:unknown,method?:string,prefer="resolution=merge-duplicates,return=minimal"):Promise<T> {
  const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY;
  if(!url||!key)throw Error("Brazil storage is not configured");
- const headers:Record<string,string>={apikey:key,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal"};
+ const headers:Record<string,string>={apikey:key,"Content-Type":"application/json",Prefer:prefer};
  if(!key.startsWith("sb_secret_"))headers.Authorization=`Bearer ${key}`;
  const response=await fetch(url.replace(/\/$/,"")+"/rest/v1/"+path,{method:method??(body===undefined?"GET":"POST"),headers,
  body:body===undefined?undefined:JSON.stringify(body),cache:"no-store",signal:AbortSignal.timeout(25000)});

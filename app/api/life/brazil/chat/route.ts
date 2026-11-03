@@ -1,3 +1,6 @@
+import {randomUUID} from "node:crypto";
+import {saveChatThread} from "@/lib/brazil-chat-history";
+import {parseThread,type ChatThread} from "@/lib/brazil-chat-history-core";
 import {NextRequest,NextResponse} from "next/server";
 import {verifyLifeSession,COOKIE_NAME} from "@/lib/auth-life";
 import {askBrazil,brazilDb,BrazilBudgetError} from "@/lib/brazil-knowledge";
@@ -15,15 +18,21 @@ export async function POST(request:NextRequest){
   try{const source=new URL(origin);if(source.host!==host||source.protocol!==protocol+":")throw Error();}
   catch{return NextResponse.json({error:"Forbidden"},{status:403,headers});}
  }
- if(Number(request.headers.get("content-length"))>16000)return NextResponse.json({error:"Слишком длинный запрос."},{status:413,headers});
+ if(Number(request.headers.get("content-length"))>3000000)return NextResponse.json({error:"Слишком длинный запрос."},{status:413,headers});
+ let thread:ChatThread;
  let question:string,history:{role:string;text:string}[];
  try {
-  const raw=await request.text();if(raw.length>16000)throw Error();const body=JSON.parse(raw);
+  const raw=await request.text();if(raw.length>3000000)throw Error();const body=JSON.parse(raw);
   if(typeof body.question!=="string"||!body.question.trim()||body.question.length>1800)throw Error();
-  question=body.question.trim();history=Array.isArray(body.history)?body.history.slice(-6).filter((h:{role?:unknown;text?:unknown})=>["user","assistant"].includes(String(h.role))&&typeof h.text==="string").map((h:{role:string;text:string})=>({role:h.role,text:h.text.slice(0,700)})):[];
+  question=body.question.trim();
+  const now=new Date().toISOString();thread=body.thread?parseThread(body.thread):{id:randomUUID(),createdAt:now,updatedAt:now,turns:[{role:"user",text:question}]};
+  if(thread.turns.at(-1)?.role!=="user"||thread.turns.at(-1)?.text!==question)throw Error();
+  history=Array.isArray(body.history)?body.history.slice(-6).filter((h:{role?:unknown;text?:unknown})=>["user","assistant"].includes(String(h.role))&&typeof h.text==="string").map((h:{role:string;text:string})=>({role:h.role,text:h.text.slice(0,700)})):[];
  }catch{return NextResponse.json({error:"Напишите вопрос длиной до 1800 символов."},{status:400,headers});}
  try {
-  const answer=await askBrazil(question,history);const budget=await brazilDb("rpc/brazil_budget",{});
+  await saveChatThread(thread);
+  const answer=await askBrazil(question,history);
+  await saveChatThread({...thread,updatedAt:new Date().toISOString(),turns:[...thread.turns,{role:"assistant",text:answer.text,sources:answer.sources}]});const budget=await brazilDb("rpc/brazil_budget",{});
   return NextResponse.json({answer,budget},{headers});
  }catch(error){
   if(error instanceof BrazilBudgetError)return NextResponse.json({error:error.message},{status:429,headers});

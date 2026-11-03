@@ -35,9 +35,9 @@ export function BrazilChat({compact=false}:{data:BrazilDashboard|null;compact?:b
  useEffect(()=>{const el=input.current;if(el){el.style.height="auto";el.style.height=`${Math.min(el.scrollHeight,112)}px`;}},[question]);
  async function send(event:FormEvent){
   event.preventDefault();const text=question.trim();if(!text||pending||!ready)return;
-  setError("");setQuestion("");setTurns(t=>[...t,{role:"user",text}]);setPending(true);
+  setError("");setQuestion("");const thread=setTurns(t=>[...t,{role:"user",text}]);setPending(true);
   try{
-   const response=await fetch("/api/life/brazil/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:text,history:turns.slice(-6).map(t=>({role:t.role,text:t.text}))})});
+   const response=await fetch("/api/life/brazil/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:text,thread,history:turns.slice(-6).map(t=>({role:t.role,text:t.text}))})});
    const result=await response.json();if(!response.ok)throw Error(result.error??"Ответ недоступен.");
    const answer=result.answer as Answer;setTurns(t=>[...t,{role:"assistant",text:answer.text,sources:answer.sources}]);
   }catch(e){setError(e instanceof Error?e.message:"Ответ недоступен.");setQuestion(text);}finally{setPending(false);}

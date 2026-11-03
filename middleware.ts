@@ -1,3 +1,4 @@
+import {lifeCookieDomain} from "@/lib/life-cookie";
 import { NextRequest, NextResponse } from "next/server";
 import { verifyLabSession, COOKIE_NAME } from "@/lib/auth-lab";
 
@@ -26,6 +27,9 @@ export async function middleware(request: NextRequest) {
       login.searchParams.set("from", pathname + request.nextUrl.search);
       return addNoindexHeader(NextResponse.redirect(login));
     }
+    const domain=lifeCookieDomain(request.headers.get("host")??request.nextUrl.host);
+    if(domain)response.cookies.set(LIFE_COOKIE,token,{domain,httpOnly:true,secure:true,sameSite:"strict",path:"/",maxAge:604800});
+    if(domain&&request.nextUrl.hostname==="www.polovinka.work")response.headers.append("Set-Cookie", `${LIFE_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`);
     return response;
   }
   // Protect /lab but allow /lab/login and API auth

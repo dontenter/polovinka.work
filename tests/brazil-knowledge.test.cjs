@@ -36,6 +36,9 @@ test('cron never runs without its secret or in preview',async()=>{
 });
 function chatRoute(env,execute){
  const exports={};vm.runInNewContext(ts.transpileModule(fs.readFileSync('app/api/life/brazil/chat/route.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,require(name){
+  if(name==='node:crypto')return require(name);
+  if(name==='@/lib/brazil-chat-history')return {saveChatThread:async()=>{}};
+  if(name==='@/lib/brazil-chat-history-core')return {parseThread:t=>t};
   if(name==='next/server')return {NextResponse:{json:(v,o)=>new Response(JSON.stringify(v),o)}};
   if(name==='@/lib/auth-life')return {COOKIE_NAME:'life_session',verifyLifeSession:async(secret,token)=>secret==='life-only'&&token==='valid'};
   if(name==='@/lib/brazil-knowledge')return {askBrazil:execute,brazilDb:async()=>({limit:3,used:0.01}),BrazilBudgetError:class extends Error{}};

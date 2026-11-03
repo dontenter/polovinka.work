@@ -1,3 +1,4 @@
+import {lifeCookieDomain} from "@/lib/life-cookie";
 import { lifeRequestOrigin } from "@/lib/life-origin";
 import { scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
@@ -28,7 +29,8 @@ export async function POST(request: NextRequest) {
   }
   const response = NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   response.cookies.set(COOKIE_NAME, await createLifeSession(secret), {
-    httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", path: "/", maxAge: 604800,
+    domain:lifeCookieDomain(request.headers.get("host")??""), httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", path: "/", maxAge: 604800,
   });
+  if(request.headers.get("host")==="www.polovinka.work")response.headers.append("Set-Cookie", `${COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`);
   return response;
 }
