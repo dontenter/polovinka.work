@@ -13,7 +13,11 @@ const ids = load('lib/assessor-id.ts', {});
 const card = id => `<a class="card" href="/play/${id}" data-site-id="${id}"><span class="card__title">Game &amp; title</span><time datetime="2026-10-23T10:00:00Z"></time></a>`;
 const nextLink = page => `<a data-game-next href="/play?cursor=${Buffer.from(JSON.stringify({page,publishedAt:'2026-10-23T10:00:00Z'})).toString('base64url')}">More</a>`;
 function importer(store, fetch) {
-  return load('lib/assessor-import.ts', { 'server-only': {}, '@/lib/assessor-id': ids, '@/lib/assessor-storage': store }, { fetch });
+  const intakeStore = { assertAssessorIntakeReady: async () => {}, getUnseenGameIds: async ids => ids,
+    ingestNewGames: async games => store.insertGames(games), ...store };
+  const fetchMetadata = async (url, init) => url.startsWith('https://developer.playgama.com/api/public/sandbox/')
+    ? Response.json({ publicToken: 'test_application' }) : fetch(url, init);
+  return load('lib/assessor-import.ts', { 'server-only': {}, '@/lib/assessor-id': ids, '@/lib/assessor-storage': intakeStore }, { fetch: fetchMetadata });
 }
 
 test('legacy and current IDs import and launch; invalid IDs and foreign launch hosts are rejected', async () => {
@@ -60,4 +64,13 @@ test('unrecognized catalog and unsafe continuation do not advance the checkpoint
  test('republished old IDs with fresh dates do not end the scan early', async()=>{
  let requested=0,saved;const impl=importer({getSyncState:async()=>({newest_id:'abcdefgh01',backfill_cursor:null}),hasPreviouslyImportedGame:async ids=>{assert.equal(ids.length,0);return false;},insertGames:async games=>games.length,saveSyncState:async value=>{saved=value;}},async()=>{requested++;return new Response(requested===1?card('abcdefgh01')+nextLink(2):card('j46ohwmlic5whq'));});
  const result=await impl.syncAssessorGames('claim','2026-10-09T11:10:49Z');assert.equal(result.added,2);assert.equal(requested,2);assert.equal(saved.backfill_done,true);
+});
+
+ test('known games never fetch metadata or reenter the queue after an update', async()=>{
+ let inserted=false;const impl=importer({getSyncState:async()=>null,getUnseenGameIds:async()=>[],insertGames:async()=>{inserted=true;},saveSyncState:async()=>{}},async()=>new Response(card('abcdefgh01')));
+ const result=await impl.syncAssessorGames('claim','2026-11-05T00:00:00Z');assert.equal(result.added,0);assert.equal(inserted,false);
+});
+ test('an uninitialized source baseline never advances the import checkpoint',async()=>{
+ let fetched=false,saved=false;const impl=importer({assertAssessorIntakeReady:async()=>{throw Error('Not initialized');},saveSyncState:async()=>{saved=true;}},async()=>{fetched=true;});
+ await assert.rejects(impl.syncAssessorGames('claim','2026-11-05T00:00:00Z'),/Not initialized/);assert.equal(fetched,false);assert.equal(saved,false);
 });

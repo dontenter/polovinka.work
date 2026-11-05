@@ -58,6 +58,28 @@ export async function listGames(status: AssessorListStatus, search: string, page
   return { games, total };
 }
 
+export type IntakeGame = ImportedGame & { application_id: string };
+
+export async function assertAssessorIntakeReady(): Promise<void> {
+  const rows: { initialized_at: string | null }[] = await (await db("assessor_intake_policy", "?id=eq.1&select=initialized_at")).json();
+  if (!rows[0]?.initialized_at) throw new Error("Assessor intake baseline is not initialized");
+}
+
+export async function getUnseenGameIds(ids: string[]): Promise<string[]> {
+  if (!ids.length) return [];
+  const params = new URLSearchParams({ select: "game_id", game_id: `in.(${ids.join(",")})`, seen: "eq.true" });
+  const rows: { game_id: string }[] = await (await db("assessor_intake_games", `?${params}`)).json();
+  const known = new Set(rows.map(row => row.game_id));
+  return ids.filter(id => !known.has(id));
+}
+
+export async function ingestNewGames(games: IntakeGame[]): Promise<number> {
+  if (!games.length) return 0;
+  return (await db("rpc/assessor_ingest_new_games", "", {
+    method: "POST", body: JSON.stringify({ p_games: games }),
+  })).json();
+}
+
 export async function hasPreviouslyImportedGame(ids: string[], before: string): Promise<boolean> {
   if (!ids.length) return false;
   const params = new URLSearchParams({ select: "id", id: `in.(${ids.join(",")})`, first_seen_at: `lte.${before}`, limit: "1" });

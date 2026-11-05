@@ -1,5 +1,5 @@
 import "server-only";
-import { getSyncState, hasPreviouslyImportedGame, insertGames, saveSyncState, type ImportedGame } from "@/lib/assessor-storage";
+import { assertAssessorIntakeReady, getSyncState, getUnseenGameIds, hasPreviouslyImportedGame, ingestNewGames, saveSyncState, type ImportedGame, type IntakeGame } from "@/lib/assessor-storage";
 
 import { isAssessorGameId } from "@/lib/assessor-id";
 
@@ -87,6 +87,29 @@ export async function resolveLaunchUrl(id: string): Promise<string> {
   return url.toString();
 }
 
+// The public catalog's publishedAt moves on every update. A permanent site-ID
+// ledger prevents updates from becoming fresh review work after queue cleanup.
+async function importUnseenGames(games: ImportedGame[]): Promise<number> {
+  const unseen = new Set(await getUnseenGameIds(games.map(game => game.id)));
+  const candidates = games.filter(game => unseen.has(game.id));
+  let added = 0;
+  for (let start = 0; start < candidates.length; start += 4) {
+    const batch = await Promise.all(candidates.slice(start, start + 4).map(async (game): Promise<IntakeGame | null> => {
+      const response = await fetch(`https://developer.playgama.com/api/public/sandbox/${game.id}`, {
+        cache: "no-store", redirect: "error", headers: { Accept: "application/json" }, signal: AbortSignal.timeout(15000),
+      });
+      if (response.status === 404) return null; // Taken down between listing and reading.
+      if (!response.ok) throw new Error(`Playgama game metadata returned ${response.status}`);
+      const data: unknown = await response.json();
+      const token = data && typeof data === "object" ? (data as { publicToken?: unknown }).publicToken : null;
+      if (typeof token !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(token)) throw new Error("Invalid Playgama application ID");
+      return { ...game, application_id: token };
+    }));
+    added += await ingestNewGames(batch.filter((game): game is IntakeGame => game !== null));
+  }
+  return added;
+}
+
 type ImportCursor = { url: string; newestId: string; knownBefore: string };
 
 function readImportCursor(value: string | null): ImportCursor | null {
@@ -106,6 +129,7 @@ function readImportCursor(value: string | null): ImportCursor | null {
 }
 
 export async function syncAssessorGames(claimedAt: string, previousUpdatedAt: string): Promise<{ added: number; scanned: number; backfillDone: boolean }> {
+  await assertAssessorIntakeReady();
   const state = await getSyncState();
   const resume = readImportCursor(state?.backfill_cursor ?? null);
   // Keep the original successful-sync boundary across retries and continuation batches.
@@ -129,7 +153,7 @@ export async function syncAssessorGames(claimedAt: string, previousUpdatedAt: st
     const reachedKnown = state?.newest_id && stop < 0
       ? await hasPreviouslyImportedGame(olderIds, knownBefore) : false;
     const newGames = stop >= 0 ? parsed.games.slice(0, stop) : parsed.games;
-    added += await insertGames(newGames);
+    added += await importUnseenGames(newGames);
     scanned += parsed.games.length;
     next = parsed.next;
     if (!state?.newest_id || stop >= 0 || reachedKnown || !next) { done = true; break; }
