@@ -19,6 +19,7 @@ const historyFilters: { id: HistoryStatus; label: string }[] = [
   { id: "ai-slope", label: "💩 AI-slope" },
 ];
 const slideDuration = 500;
+const errorBannerStyle = "mb-4 rounded-md border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-300";
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 
@@ -221,7 +222,7 @@ export default function AssessorPage() {
   }
 
   return (
-    <main className="container mx-auto max-w-[1600px] px-4 py-8 sm:px-6">
+    <main className="assessor-theme container mx-auto max-w-[1600px] px-4 py-8 sm:px-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Lab / Content review</p>
@@ -232,24 +233,24 @@ export default function AssessorPage() {
           {syncing ? "Checking…" : "Check for new games"}
         </Button>
       </div>
-      <div className="mb-5 flex items-center gap-2 border-b pb-4">
+      <div className="mb-5 flex items-center gap-2 border-b border-border pb-4">
         <button type="button" disabled={saving || Boolean(qualitySaving) || Boolean(slide)} onClick={() => switchView("review")}
-          className={"rounded-md px-4 py-2 text-sm font-medium " + (view === "review" ? "bg-foreground text-background" : "hover:bg-muted")}>
+          className={"rounded-md border px-4 py-2 text-sm font-medium " + (view === "review" ? "border-border bg-muted" : "border-transparent text-muted-foreground hover:bg-muted")}>
           Review {view === "review" && !loading ? "(" + total + ")" : ""}
         </button>
         <button type="button" disabled={saving || Boolean(qualitySaving) || Boolean(slide)} onClick={() => switchView("history")}
-          className={"rounded-md px-4 py-2 text-sm font-medium " + (view === "history" ? "bg-foreground text-background" : "hover:bg-muted")}>
+          className={"rounded-md border px-4 py-2 text-sm font-medium " + (view === "history" ? "border-border bg-muted" : "border-transparent text-muted-foreground hover:bg-muted")}>
           History
         </button>
       </div>
-      {error && <p role="alert" className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
-      {syncError && <p role="alert" className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{syncError}</p>}
+      {error && <p role="alert" className={errorBannerStyle}>{error}</p>}
+      {syncError && <p role="alert" className={errorBannerStyle}>{syncError}</p>}
       {syncMessage && !syncError && <p role="status" className="mb-4 text-xs text-muted-foreground">{syncMessage}</p>}
 
       {view === "review" ? (
         current ? (
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1.9fr)_minmax(320px,0.85fr)]">
-            <section className="overflow-hidden rounded-xl border bg-black">
+            <section className="overflow-hidden rounded-xl border border-border bg-black">
               <div className="relative h-[calc(65vh+4rem)] min-h-[584px] max-h-[964px]">
                 {stagedGames.map(game => {
                   const active = game.id === current.id;
@@ -290,24 +291,24 @@ export default function AssessorPage() {
                 )}
               </div>
             </section>
-            <aside className="flex h-fit flex-col rounded-xl border bg-card p-5 lg:sticky lg:top-5">
+            <aside className="flex h-fit flex-col rounded-xl border border-border bg-card p-5 lg:sticky lg:top-5">
               <div className="grid grid-cols-2 gap-3">
                 <Button variant="outline"
-                  className={"h-24 w-full flex-col gap-2 rounded-xl whitespace-normal " + (current.is_favourite ? "border-rose-400 bg-rose-50 text-rose-700 hover:bg-rose-100" : "")}
+                  className={"h-24 w-full flex-col gap-2 rounded-xl whitespace-normal " + (current.is_favourite ? "border-rose-400/60 bg-rose-500/10 hover:bg-rose-500/20" : "")}
                   disabled={Boolean(qualitySaving) || saving || Boolean(slide)}
                   aria-label="Good game" aria-pressed={current.is_favourite}
                   onClick={() => void toggleQuality(current, "favourite")}>
                   <span aria-hidden="true" className="text-3xl">❤️</span>
                 </Button>
                 <Button variant="outline"
-                  className={"h-24 w-full flex-col gap-2 rounded-xl whitespace-normal " + (current.is_ai_slop ? "border-amber-400 bg-amber-50 text-amber-800 hover:bg-amber-100" : "")}
+                  className={"h-24 w-full flex-col gap-2 rounded-xl whitespace-normal " + (current.is_ai_slop ? "border-amber-400/60 bg-amber-500/10 hover:bg-amber-500/20" : "")}
                   disabled={Boolean(qualitySaving) || saving || Boolean(slide)}
                   aria-label="AI-slope" aria-pressed={Boolean(current.is_ai_slop)}
                   onClick={() => void toggleQuality(current, "aiSlop")}>
                   <span aria-hidden="true" className="text-3xl">💩</span>
                 </Button>
               </div>
-              <h2 className="mt-5 border-t pt-5 text-xl font-semibold leading-snug">Does this game contain prohibited content?</h2>
+              <h2 className="mt-5 border-t border-border pt-5 text-xl font-semibold leading-snug">Does this game contain prohibited content?</h2>
               <div className="mt-5 grid grid-cols-2 gap-3">
                 <Button className="aspect-square h-auto w-full flex-col gap-3 whitespace-normal rounded-xl text-base" variant="outline"
                   disabled={saving || Boolean(slide) || Boolean(qualitySaving)} onClick={() => void answer("clear")}>
@@ -320,7 +321,7 @@ export default function AssessorPage() {
                   <span>Prohibited content</span>
                 </Button>
               </div>
-              <div className="mt-6 border-t pt-4">
+              <div className="mt-6 border-t border-border pt-4">
                 <Button className="w-full justify-start text-muted-foreground" variant="ghost" disabled={saving || Boolean(slide) || Boolean(qualitySaving)} onClick={() => void answer("unavailable")}>
                   <XCircle className="mr-3 h-4 w-4" /> Not loading
                 </Button>
@@ -329,7 +330,7 @@ export default function AssessorPage() {
             </aside>
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
+          <div className="rounded-xl border border-dashed border-border p-12 text-center text-muted-foreground">
             {loading || syncing ? "Loading review queue…" : "No games waiting for review."}
           </div>
         )
@@ -338,7 +339,7 @@ export default function AssessorPage() {
           <div className="mb-5 flex flex-wrap items-center gap-2">
             {historyFilters.map(filter => (
               <button key={filter.id} type="button" disabled={Boolean(qualitySaving)} onClick={() => { setHistoryStatus(filter.id); setPage(1); }}
-                className={"rounded-md border px-3 py-2 text-sm " + (historyStatus === filter.id ? "border-foreground bg-foreground text-background" : "hover:bg-muted")}>
+                className={"rounded-md border border-border px-3 py-2 text-sm " + (historyStatus === filter.id ? "bg-muted" : "text-muted-foreground hover:bg-muted")}>
                 {filter.label}
               </button>
             ))}
@@ -351,8 +352,8 @@ export default function AssessorPage() {
             <Button type="submit" variant="outline">Search</Button>
           </form>
           <p className="mb-3 text-sm text-muted-foreground">{loading ? "Loading…" : total + (total === 1 ? " game" : " games")}</p>
-          {!loading && games.length === 0 && <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">No games found.</div>}
-          <div className="divide-y rounded-xl border">
+          {!loading && games.length === 0 && <div className="rounded-xl border border-dashed border-border p-10 text-center text-muted-foreground">No games found.</div>}
+          <div className="divide-y divide-border rounded-xl border border-border bg-card">
             {games.map(game => (
               <div key={game.id} className="grid gap-2 p-4 sm:grid-cols-[minmax(0,1fr)_auto]">
                 <div>
@@ -369,12 +370,12 @@ export default function AssessorPage() {
                   <Button variant="ghost" size="icon" disabled={Boolean(qualitySaving)}
                     aria-label={game.is_favourite ? `Remove ${game.title} from good games` : `Add ${game.title} to good games`}
                     aria-pressed={game.is_favourite} onClick={() => void toggleQuality(game, "favourite")}>
-                    <Heart className={game.is_favourite ? "fill-current text-rose-500" : "text-muted-foreground"} />
+                    <Heart className={game.is_favourite ? "fill-current text-rose-400" : "text-muted-foreground"} />
                   </Button>
                   <Button variant="ghost" size="icon" disabled={Boolean(qualitySaving)}
                     aria-label={game.is_ai_slop ? `Remove ${game.title} from AI-slope` : `Add ${game.title} to AI-slope`}
                     aria-pressed={Boolean(game.is_ai_slop)} onClick={() => void toggleQuality(game, "aiSlop")}
-                    className={game.is_ai_slop ? "bg-amber-100" : ""}>
+                    className={game.is_ai_slop ? "bg-amber-500/10 hover:bg-amber-500/20" : ""}>
                     <span aria-hidden="true" className="text-xl">💩</span>
                   </Button>
                   <span className="text-xs text-muted-foreground">ID {game.id}</span>
@@ -391,7 +392,7 @@ export default function AssessorPage() {
       )}
       <dialog ref={noteDialog} aria-labelledby="assessor-note-title"
         onClose={() => { setNoteOpen(false); setNote(""); }}
-        className="w-[calc(100%-2rem)] max-w-lg rounded-xl border bg-card p-6 text-foreground shadow-2xl backdrop:bg-black/60">
+        className="w-[calc(100%-2rem)] max-w-lg rounded-xl border border-border bg-card p-6 text-foreground shadow-2xl backdrop:bg-black/60">
         <form onSubmit={event => {
           event.preventDefault();
           const reviewNote = note;
@@ -403,11 +404,11 @@ export default function AssessorPage() {
           <label htmlFor="assessor-note" className="mt-5 block text-sm font-medium">Note (optional)</label>
           <textarea id="assessor-note" value={note} onChange={event => setNote(event.target.value)}
             maxLength={2000} rows={4} autoFocus placeholder="Describe what you found"
-            className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
-          {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
+            className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+          {error && <p role="alert" className="mt-3 text-sm text-red-300">{error}</p>}
           <div className="mt-5 flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setNoteOpen(false)}>Cancel</Button>
-            <Button type="submit">Save and continue</Button>
+            <Button type="submit" className="bg-blue-700 text-white hover:bg-blue-600">Save and continue</Button>
           </div>
         </form>
       </dialog>

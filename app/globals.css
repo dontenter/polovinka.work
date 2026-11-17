@@ -20,7 +20,8 @@
     --game-border: 0 0% 85%;
     --game-shadow: 0 0% 0% / 0.06;
   }
-  .dark {
+  .dark,
+  html:has(.assessor-theme) {
     --background: 0 0% 7%;
     --foreground: 0 0% 98%;
     --card: 0 0% 10%;
@@ -36,6 +37,11 @@
     --game-border: 0 0% 22%;
     --game-shadow: 0 0% 0% / 0.2;
   }
+}
+
+/* Apply the assessor palette to the shared header and page background. */
+html:has(.assessor-theme) {
+  color-scheme: dark;
 }
 
 html {
