@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Toast } from "@/components/ui/toast";
+import { GameTestingThemeToggle } from "@/components/game-testing-theme";
 import {
   saveGameTestResult,
   generateId,
@@ -1423,7 +1424,7 @@ export default function GameTestingPage() {
   return (
     <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <Link
           href="/lab"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -1431,6 +1432,7 @@ export default function GameTestingPage() {
           <ArrowLeft className="h-4 w-4" />
           Back to Lab
         </Link>
+        <GameTestingThemeToggle />
       </div>
 
       <div className="mb-8">

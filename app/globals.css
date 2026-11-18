@@ -21,7 +21,8 @@
     --game-shadow: 0 0% 0% / 0.06;
   }
   .dark,
-  html:has([data-assessor-theme="dark"]) {
+  html:has([data-assessor-theme="dark"]),
+  html:has([data-game-testing-theme="dark"]) {
     --background: 0 0% 7%;
     --foreground: 0 0% 98%;
     --card: 0 0% 10%;
@@ -40,8 +41,15 @@
 }
 
 /* Apply the assessor palette to the shared header and page background. */
-html:has([data-assessor-theme="dark"]) {
+html:has([data-assessor-theme="dark"]),
+html:has([data-game-testing-theme="dark"]) {
   color-scheme: dark;
+}
+
+@layer base {
+  :where([data-game-testing-theme] *) {
+    border-color: hsl(var(--border));
+  }
 }
 
 html {
